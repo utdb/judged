@@ -1,0 +1,6 @@
+% Test to check for number fubars
+
+a(1). a(1.0).  a(2).
+b(X) :- a(X).
+
+b(Y)?

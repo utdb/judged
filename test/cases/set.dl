@@ -1,0 +1,13 @@
+% A subset approach to set/3
+%
+% Expected:
+% set(1, 2, 3)
+% set(1, 2, 4)
+
+e(1). e(2). e(3). e(4).
+
+set(A)       :- e(A).
+set(A, B)    :- e(A), e(B), A != B.
+set(A, B, C) :- set(A, B), set(A, C), set(B, C).
+
+set(1, 2, X)?

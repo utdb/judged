@@ -1,0 +1,6 @@
+% From Chen, Swift and Warren 1995
+s :- ~p, ~q.
+p :- ~s, q.
+q :- ~s, p.
+
+s?

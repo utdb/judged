@@ -1,0 +1,17 @@
+source(a).
+source(b).
+
+arc(a,c).
+arc(b,c).
+arc(c,d).
+target(d).
+
+arc(e,f).
+target(f).
+
+
+reach(X) :- source(X).
+reach(X) :- reach(Y), arc(Y,X).
+noReach(X) :- target(X), ~reach(X).
+
+noReach(Y)?

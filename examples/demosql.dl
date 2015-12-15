@@ -1,0 +1,3 @@
+parent(A, B) :- triple(A, "parent", B).
+
+parent(P, C)?

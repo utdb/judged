@@ -1,0 +1,32 @@
+% Example of reachability in an undirected graph.
+%
+% For this toy example, envision the graph as a power grid, the sources as
+% power plants and the targets as cities that need power.
+
+% graph edges
+edge(a, b).
+edge(b, c).
+edge(a, d).
+edge(c, d).
+
+edge(e, f).
+edge(f, g).
+
+% vertex attributes
+plant(a).
+plant(c).
+city(d).
+city(f).
+
+% rules
+edge(A,B) :- edge(B, A).
+
+reachable(A, B) :- edge(A, B).
+reachable(A, B) :- edge(A, Z), edge(Z, B).
+
+% A target is powered if some source can be reached
+powered(A) :- city(A), plant(B), reachable(A, B).
+unpowered(A) :- city(A), ~powered(A).
+
+% list all cities that still need to be powered
+unpowered(C)?

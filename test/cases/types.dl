@@ -1,0 +1,6 @@
+% testcase for type handling
+
+a(foo).
+a("foo").
+
+a(X)?
