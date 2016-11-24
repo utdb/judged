@@ -21,7 +21,8 @@ punctuation = {
     '~': TILDE,
     '?': QUERY,
     '[': LBRACKET,
-    ']': RBRACKET
+    ']': RBRACKET,
+    '@': AT
 }
 
 # generation of all punctuation starters

@@ -105,7 +105,8 @@ IDENTIFIER = lambda t: t[0] in (NAME, STRING, NUMBER)
 actions = {
     PERIOD: 'assert',
     TILDE: 'retract',
-    QUERY: 'query'
+    QUERY: 'query',
+    AT: 'annotate'
 }
 
 
@@ -118,16 +119,21 @@ def _parse(tokens):
 
     while ts:
         start_t = ts.peek()
-        clause = parse_clause(ts)
-        t_action = ts.next(lambda t: t[0] in (PERIOD, TILDE, QUERY), 'Expected period, tilde or question mark to indicate action.')
-        action = actions[t_action[0]]
-
-        if action == 'query':
-            if len(clause) > 0:
-                raise ParseError('Can not query for a clause (only literals can be queried on).', t_action[2])
-            yield (clause.head, action, LocationContext(start_t[2], t_action[2]))
+        if ts.consume(AT):
+            annotation = parse_annotation(ts)
+            t_action = ts.next(lambda t: t[0] == PERIOD, 'Expected period to close annotation')
+            yield(annotation, actions[AT], LocationContext(start_t[2], t_action[2]))
         else:
-            yield (clause, action, LocationContext(start_t[2], t_action[2]))
+            clause = parse_clause(ts)
+            t_action = ts.next(lambda t: t[0] in (PERIOD, TILDE, QUERY), 'Expected period, tilde or question mark to indicate action.')
+            action = actions[t_action[0]]
+
+            if action == 'query':
+                if len(clause) > 0:
+                    raise ParseError('Can not query for a clause (only literals can be queried on).', t_action[2])
+                yield (clause.head, action, LocationContext(start_t[2], t_action[2]))
+            else:
+                yield (clause, action, LocationContext(start_t[2], t_action[2]))
 
 
 def make_term(token):
@@ -138,6 +144,7 @@ def make_term(token):
     handling of strings, names and numbers.
     """
     kind, spelling, location = token
+
     # See if this is a variable
     if kind == NAME and spelling[:1].isupper():
         return datalog.Variable(spelling)
@@ -146,6 +153,7 @@ def make_term(token):
     if kind == NAME and spelling == '_':
         return datalog.make_fresh_var()
 
+    # handle constants
     if kind == NAME:
         return datalog.Constant(spelling)
     elif kind == STRING:
@@ -283,3 +291,43 @@ def parse_clause(ts):
         ts.expect(RBRACKET)
 
     return datalog.Clause(head, literals, [], sentence)
+
+
+def parse_probability(ts):
+    """
+    Parse a probability notation of 'P(x=n)'.
+    """
+    ts.next(lambda t: t[0] == NAME and t[1] in ('P','p'), 'Expected a probability notation of the form P(x=n).')
+    ts.expect(LPAREN)
+    label = parse_descriptive_label(ts)
+    ts.expect(RPAREN)
+    return label
+
+
+def parse_probability_var(ts):
+    """
+    Parse a probability notation of 'P(x)'.
+    """
+    ts.next(lambda t: t[0] == NAME and t[1] in ('P','p'), 'Expected a probability notation of the form P(x)')
+    ts.expect(LPAREN)
+    variable = ts.next(IDENTIFIER, 'Expected an identifier or string as partitioning name.')
+    ts.expect(RPAREN)
+    return variable
+
+def parse_annotation(ts):
+    """
+    Parse an annotation.
+    """
+    if ts.test(lambda t: t[0] == NAME and t[1] in ('P','p')):
+        label = parse_probability(ts)
+        ts.expect(EQUALS,'to continue probability assignment')
+        prob_t = ts.expect(NUMBER, 'to complete probability assignment.')
+        return ('probability', label, prob_t[1])
+    elif ts.test(lambda t: t[0] == NAME and t[1] == 'uniform'):
+        ts.expect(NAME)
+        prob_t = parse_probability_var(ts)
+        return ('distribution', prob_t[1], 'uniform')
+    else:
+        t = ts.peek()
+        raise ParseError('Expected explicit probability assignment or distribution assignment.', t[2] if t is not None else None)
+
