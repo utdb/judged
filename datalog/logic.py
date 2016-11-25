@@ -92,12 +92,18 @@ class Subgoal:
         self.negs = list()
         self.comp = False
 
+    def __repr__(self):
+        return "Subgoal(literal={}, anss={}, poss={}, negs={}, comp={})".format(self.literal, self.anss, self.poss, self.negs, self.comp)
+
 
 class Waiter:
     def __init__(self, literal, clause, selected):
         self.literal = literal
         self.clause = clause
         self.selected = selected
+
+    def __repr__(self):
+        return "Waiter(literal={}, clause={}, selected={})".format(self.literal, self.clause, self.selected)
 
 
 class Frame:
@@ -113,6 +119,8 @@ class Mins:
         self.posmin = posmin
         self.negmin = negmin
 
+    def __str__(self):
+        return "(posmin={}, negmin={})".format(self.posmin, self.negmin)
 
 class Prover:
     """
