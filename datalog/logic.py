@@ -3,10 +3,61 @@ Core datalog module that provides classes for terms, predicates, literals, and
 clauses as well as a Knowledge base implementation and a Prover.
 """
 
+import random
+import collections
+
 from datalog import *
 from datalog import worlds
 import datalog.primitives
 from datalog.caching import NoCache
+
+
+class Choices(dict):
+    """
+    Choice picking device.
+    """
+    def __init__(self, knowledge):
+        self.kb = knowledge
+        super()
+
+    def check(self, key, part):
+        if key not in self:
+            self[key] = self.kb.pick(key)
+        return self[key] == part
+
+
+class Context:
+    def __init__(self, kb, prover):
+        self.knowledge = kb
+        self.prover = prover
+
+    def add_probability(self, partitioning, part, prob):
+        """Stores the probability attached to a partition."""
+        self.prob.setdefault(partitioning, dict())
+        self.prob[partitioning][part] = prob
+
+
+class DeterministicContext(Context):
+    pass
+
+
+class MontecarloContext(Context):
+    # FIXME: Move to choice device?
+    def pick(self, partitioning):
+        """
+        Randomly picks a partition based on the known partitions. The selection
+        is weighted by the assigned probabilities.
+        """
+        r = random.random()
+        a = 0.0
+        try:
+            for part, prob in self.prob[partitioning].items():
+                a += prob
+                if a >= r:
+                    return part
+            raise DatalogError("Probabilities for partitioning '{}' do not sum to 1.0.".format(partitioning))
+        except:
+            raise DatalogError("Probabilities for partitioning '{}' not set".format(partitioning))
 
 
 class Knowledge:
@@ -83,6 +134,13 @@ class Knowledge:
         if pred in self.db:
             yield from self.db[pred].values()
 
+    def parts(self, partitioning):
+        # FIXME: Used exclusively for worlds.exclusion_matrix, need refactor
+        result = set()
+        for db in self.db.values():
+            for clause in db.values():
+                result.update(lbl[1] for lbl in clause.sentence.labels() if lbl[0]==partitioning)
+        return result
 
 class Subgoal:
     def __init__(self, literal):
@@ -122,6 +180,7 @@ class Mins:
     def __str__(self):
         return "(posmin={}, negmin={})".format(self.posmin, self.negmin)
 
+
 class Prover:
     """
     The prover can prove queries over a knowledge base. Use the ask method with
@@ -137,6 +196,7 @@ class Prover:
     def __init__(self, knowledge, debugger=None, cache=NoCache()):
         self.kb = knowledge
         self.debugger = debugger
+        # FIXME: Refactor cache to context
         self.cache = cache
         # initialize bookkeeping
         self.subgoals = dict()
@@ -152,6 +212,7 @@ class Prover:
         self.subgoals.clear()
         self.stack.clear()
         if flush_cache:
+            # FIXME: Refactor this into context
             self.cache.clear()
 
         subgoal = Subgoal(query)
@@ -170,6 +231,14 @@ class Prover:
             if answer.head not in seen:
                 seen.add(answer.head)
                 yield answer.head
+
+    def allows(self, sentence):
+        """
+        Checks if the sentence is allowed in the set of worlds currently
+        chosen. This method updates self.choices if a choice is needed.
+        """
+        #FIXME: Refactor self.choices to context thing
+        return worlds.evaluate(sentence, self.choices)
 
     def slg_resolve(self, clause, selected, other):
         """
@@ -213,6 +282,8 @@ class Prover:
         """
         if self.debugger: self.debugger.subgoal(literal)
         for clause in self.kb.clauses(literal, self):
+            if not self.allows(clause.sentence):
+                continue
             resolvent = self.slg_resolve(Clause(literal, [literal]), literal, clause)
             if resolvent is not None:
                 self.slg_newclause(literal, resolvent, mins)
@@ -475,3 +546,136 @@ class Prover:
                 self.slg_newclause(literal, clause, mins)
             for fb in frames:
                 self.slg_complete(fb.subgoal.literal, mins)
+
+
+class ExactProver(Prover):
+    """Prover for symbolic sentence handling. Subclasses the normal prover and
+    only replaces those methods that are modified with respect to the normal
+    operations."""
+    def ask(self, query, flush_cache=True):
+        """
+        Sets up and activates the subgoal search machinery. The answer is then
+        returned as a list of proven facts. [Chen et al., Figure 13, p. 181]
+        """
+        self.count = 1
+        self.subgoals.clear()
+        self.stack.clear()
+        if flush_cache:
+            # FIXME: Refactor cache handling into context
+            self.cache.clear()
+
+        subgoal = Subgoal(query)
+        self.subgoals[query.tag()] = subgoal
+
+        dfn = self.count
+        self.stack.append(Frame(subgoal, dfn, dfn, float('inf')))
+        self.count += 1
+
+        if self.debugger: self.debugger.ask(query)
+        self.slg_subgoal(query, Mins(dfn, float('inf')))
+        if self.debugger: self.debugger.done(subgoal)
+
+        seen = dict()
+        for answer in subgoal.anss:
+            seen.setdefault(answer.head, [])
+            seen[answer.head].append(answer.sentence)
+        for head, sentences in seen.items():
+            yield Clause(head, [], [], worlds.disjunct(*sentences))
+
+    def slg_resolve(self, clause, selected, other):
+        """
+        Determines the SLG resolvent of a clause G with selected literal Li and
+        some other clause C. [Chen et al., Definition 2.4, p. 171]
+        """
+        if not clause.body:
+            return None
+        renamed = other.rename()
+        env = selected.unify(renamed.head)
+        if env is None:
+            return None
+
+        body = []
+        for lit in clause.body:
+            if lit == selected:
+                body.extend(renamed.body)
+            else:
+                body.append(lit)
+
+        sentence = worlds.conjunct(clause.sentence, other.sentence)
+        if worlds.falsehood(sentence, self.kb):
+            return None
+
+        return Clause(clause.head, body, clause.delayed, sentence).subst(env)
+
+    def slg_factor(self, clause, selected, other):
+        """
+        Deteremines the SLG factor of a clause G with selected literal Li and
+        an answer clause C. [Chen et al., Definition 2.5, p. 171]
+        """
+        if not other.delayed:
+            return None
+        renamed = other.rename()
+        env = selected.unify(renamed.head)
+        if env is None:
+            return None
+
+        body = [lit for lit in clause.body if lit != selected]
+        delayed = clause.delayed + [selected]
+        return Clause(clause.head, body, delayed, worlds.conjunct(clause.sentence, other.sentence)).subst(env)
+
+    def answer_subsumed_by(self, clause, answers):
+        # Due to the safety constraints the clause's head will feature no
+        # variables if the body is empty. slg_answer, and thus
+        # answer_subsumed_by, is only called after no literal can be selected
+        # so the body must be empty. Datalog does not support compound terms,
+        # so call subsumption is not possible.
+        #
+        # However, subsumption through equality is still possible.
+        if self.debugger: self.debugger.note("answer_subsumed_by({}, {}) -> {}".format(clause, answers, clause in answers))
+        for cl in answers:
+            # XXX: cl.body and cl.delayed empty? This might be an issue.
+            if cl.head == clause.head and worlds.equivalent(cl.sentence, clause.sentence, self.kb):
+                return True
+        return False
+
+    def slg_positive(self, literal, clause, selected, mins):
+        """
+        [Chen et al., Figure 16, p. 183]
+        """
+        if selected.tag() not in self.subgoals:
+            subgoal = Subgoal(selected)
+            subgoal.poss.append(Waiter(literal, clause, selected))
+            self.subgoals[selected.tag()] = subgoal
+            dfn = self.count
+            poslink = self.count
+            neglink = float('inf')
+            self.stack.append(Frame(subgoal, dfn, poslink, neglink))
+            self.count += 1
+            bmins = Mins(dfn, float('inf'))
+            self.slg_subgoal(selected, bmins)
+            self.update_solution(literal, selected, True, mins, bmins)
+        else:
+            subgoal = self.subgoals[selected.tag()]
+            if not subgoal.comp:
+                subgoal.poss.append(Waiter(literal, clause, selected))
+                self.update_lookup(literal, selected, True, mins)
+            todo = []
+            def fact_in_collection(fact, collection):
+                for cl in collection:
+                    if cl.head == fact and not cl.body and not cl.delayed:
+                        return True
+                return False
+            for c in subgoal.anss:
+                if fact_in_collection(c.head, subgoal.anss):
+                    # try to unify with already present answers, this should only
+                    # fail if it leads to a contradictory world
+                    resolvent = self.slg_resolve(clause, selected, Clause(c.head,[],[],c.sentence))
+                    if resolvent is not None:
+                        todo.append(resolvent)
+                else:
+                    resolvent = self.slg_factor(clause, selected, c)
+                    assert resolvent is not None
+                    todo.append(resolvent)
+                    #todo.append(self.slg_factor(clause, selected, c))
+            for c in todo:
+                self.slg_newclause(literal, c, mins)
