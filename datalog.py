@@ -287,6 +287,11 @@ def main():
                          help='Imports the datalog files before going to interactive mode.')
     options.add_argument('-v', '--verbose', default=False, action='store_true',
                          help='Increases verbosity. Outputs each imported statement before doing it.')
+    # FIXME: Monte carlo only
+    # options.add_argument('-n', '--number', type=int, default=1000,
+    #                      help='The maximum number of simulation runs to do. A value of zero means no maximum. Defaults to %(default)s.')
+    # options.add_argument('-a', '--approximate', type=float, default=0,
+    #                      help='The maximum allowable error for an approximation simulation. Defaults to %(default)s.')
     options.add_argument('-d', '--debug', default=False, action='store_true',
                          help='Enables debugging output.')
     options.add_argument('-c', '--cache', choices=('dict', 'none'), default='dict',
@@ -300,6 +305,9 @@ def main():
         format_default = 'plain'
     options.add_argument('-f', '--format', choices=('plain','color','html'), default=format_default,
                          help='Selects output format. Defaults to the value of the '+FORMAT_ENV_KEY+' environment variable if set, \'plain\' if it is not set or if the output is piped.')
+    # FIXME: Usability feature for later (used in MC branch)
+    # options.add_argument('-j', '--json', default=False, action='store_true',
+    #                      help='Output query answers in JSON format.')
 
     args = options.parse_args()
 
