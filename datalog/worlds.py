@@ -20,7 +20,7 @@ class Sentence:
     def labels(self):
         return set()
 
-    def evaluate(self, context):
+    def evaluate(self, checker):
         raise NotImplementedError
 
 
@@ -63,9 +63,9 @@ class Disjunction(Nary):
             res = res | s.create_bdd()
         return res
 
-    def evaluate(self, context):
+    def evaluate(self, checker):
         for t in self.terms:
-            if t.evaluate(context) == True:
+            if t.evaluate(checker) == True:
                 return True
         return False
 
@@ -79,9 +79,9 @@ class Conjunction(Nary):
             res = res & s.create_bdd()
         return res
 
-    def evaluate(self, context):
+    def evaluate(self, checker):
         for t in self.terms:
-            if t.evaluate(context) == False:
+            if t.evaluate(checker) == False:
                 return False
         return True
 
@@ -93,8 +93,8 @@ class Negation(Unary):
     def create_bdd(self):
         return ~ (self.sub.create_bdd())
 
-    def evaluate(self, context):
-        return not self.sub.evaluate(context)
+    def evaluate(self, checker):
+        return not self.sub.evaluate(checker)
 
     def labels(self):
         return self.sub.labels()
@@ -109,13 +109,13 @@ class Label(Atom):
         return "{}={}".format(self.partitioning, self.part)
 
     def create_bdd(self):
-        return mybddvar(self.partitioning,self.part)
+        return mybddvar(self.partitioning, self.part)
 
     def labels(self):
         return set([(self.partitioning, self.part)])
 
-    def evaluate(self, context):
-        return (self.partitioning, self.part) in context
+    def evaluate(self, checker):
+        return checker(self.partitioning, self.part)
 
 
 class Top(Atom):
@@ -125,7 +125,7 @@ class Top(Atom):
     def create_bdd(self):
         return bdd.constant(True)
 
-    def evaluate(self, context):
+    def evaluate(self, checker):
         return True
 
 
@@ -136,7 +136,7 @@ class Bottom(Atom):
     def create_bdd(self):
         return bdd.constant(False)
 
-    def evaluate(self, context):
+    def evaluate(self, checker):
         return False
 
 
@@ -203,8 +203,8 @@ def falsehood(s, kb):
 def labels(s):
     return s.labels()
 
-def evaluate(s, context):
-    return s.evaluate(context)
+def evaluate(s, checker):
+    return s.evaluate(checker)
 
 def conjunct(*terms):
     used = {t for t in terms if t != Top()}

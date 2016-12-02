@@ -12,37 +12,79 @@ import datalog.primitives
 from datalog.caching import NoCache
 
 
-class Choices(dict):
-    """
-    Choice picking device.
-    """
-    def __init__(self, knowledge):
-        self.kb = knowledge
-        super()
+Answer = collections.namedtuple('Answer', ['clause', 'probability'])
 
-    def check(self, key, part):
-        if key not in self:
-            self[key] = self.kb.pick(key)
-        return self[key] == part
+class Result:
+    def __init__(self, answers, **notes):
+        self.answers = answers
+        self.notes = notes
 
 
 class Context:
-    def __init__(self, kb, prover):
+    def __init__(self, kb, prover, cache=NoCache()):
         self.knowledge = kb
         self.prover = prover
+        self.cache = cache
+        self.prob = {}
 
     def add_probability(self, partitioning, part, prob):
         """Stores the probability attached to a partition."""
         self.prob.setdefault(partitioning, dict())
         self.prob[partitioning][part] = prob
 
+    def check(self, key, part):
+        raise NotImplementedError()
+
+    def ask(self, query, flush_cache=True):
+        if flush_cache:
+            self.cache.clear()
+        answers = self.prover.ask(query, self.check)
+        return Result([Answer(a, None) for a in answers])
+
 
 class DeterministicContext(Context):
-    pass
+    def __init__(self, debugger=None, cache=NoCache()):
+        kb = Knowledge()
+        super().__init__(kb, Prover(kb, debugger=debugger), cache)
+        self.choices = {}
+
+    def check(self, key, part):
+        try:
+            self.choices[key] == part
+        except KeyError:
+            raise DatalogError("Can not check whether label '{key}={part}' holds, no part is selected for the partitioning '{key}'.".format(
+                key=key,
+                part=part
+            ))
+
+    def select_world_set(self, key, part):
+        self.choices[key] = part
+
+    def reset_world_set(self):
+        self.choices.clear()
+
+
+class ExactContext(Context):
+    def __init__(self, debugger=None, cache=NoCache()):
+        kb = Knowledge()
+        super().__init__(kb, ExactProver(kb, debugger=debugger), cache)
+
+    def check(self, key, part):
+        # NOTE: This can be used to allow "conditioned queries" by restricting the world set
+        return True
 
 
 class MontecarloContext(Context):
-    # FIXME: Move to choice device?
+    def __init__(self, debugger=None, cache=NoCache()):
+        kb = Knowledge()
+        super().__init__(kb, Prover(kb, debugger=debugger), cache)
+        self.choices = {}
+
+    def check(self, key, part):
+        if key not in self.choices:
+            self.choices[key] = self.pick(key)
+        return self.choices[key] == part
+
     def pick(self, partitioning):
         """
         Randomly picks a partition based on the known partitions. The selection
@@ -58,6 +100,48 @@ class MontecarloContext(Context):
             raise DatalogError("Probabilities for partitioning '{}' do not sum to 1.0.".format(partitioning))
         except:
             raise DatalogError("Probabilities for partitioning '{}' not set".format(partitioning))
+
+    def ask(self, query, flush_cache=True):
+        # FIXME: expects args.number, args.approximate
+        if flush_cache:
+            self.cache.clear()
+
+        count = 0
+        worlds = collections.Counter()
+        answers = collections.Counter()
+
+        def p(c):
+            return c / count
+
+        def exact(w):
+            result = 1
+            for p,v in w:
+                result *= kb.prob[p][v]
+            return result
+
+        def error():
+            result = 0
+            for w in worlds:
+                result += (exact(w) - p(worlds[w]))**2
+            result /= len(worlds)
+            return result**0.5
+
+        while args.number == 0 or count < args.number:
+            count += 1
+
+            self.choices.clear()
+            answer = list(prover.ask(clause))
+            world = frozenset(self.choices.items())
+
+            for a in answer:
+                answers[a] += 1
+            worlds[world] += 1
+
+            if args.approximate is not None:
+                if error() <= args.approximate:
+                    break
+
+        return Result([Answer(a, p(c)) for a, c in answers.items()], iterations=count, error=error())
 
 
 class Knowledge:
@@ -135,12 +219,13 @@ class Knowledge:
             yield from self.db[pred].values()
 
     def parts(self, partitioning):
-        # FIXME: Used exclusively for worlds.exclusion_matrix, need refactor
+        # NOTE: Used exclusively for worlds.exclusion_matrix and uniform distribution
         result = set()
         for db in self.db.values():
             for clause in db.values():
                 result.update(lbl[1] for lbl in clause.sentence.labels() if lbl[0]==partitioning)
         return result
+
 
 class Subgoal:
     def __init__(self, literal):
@@ -193,17 +278,16 @@ class Prover:
     A prover is not thread-safe. Multi-threaded use requires the construction
     of multiple provers.
     """
-    def __init__(self, knowledge, debugger=None, cache=NoCache()):
+    def __init__(self, knowledge, debugger=None):
         self.kb = knowledge
         self.debugger = debugger
-        # FIXME: Refactor cache to context
-        self.cache = cache
         # initialize bookkeeping
         self.subgoals = dict()
         self.stack = list()
         self.count = 1
+        self.checker = None
 
-    def ask(self, query, flush_cache=True):
+    def ask(self, query, checker):
         """
         Sets up and activates the subgoal search machinery. The answer is then
         returned as a list of proven facts. [Chen et al., Figure 13, p. 181]
@@ -211,13 +295,11 @@ class Prover:
         self.count = 1
         self.subgoals.clear()
         self.stack.clear()
-        if flush_cache:
-            # FIXME: Refactor this into context
-            self.cache.clear()
+        self.checker = checker
 
         subgoal = Subgoal(query)
         self.subgoals[query.tag()] = subgoal
-        
+
         dfn = self.count
         self.stack.append(Frame(subgoal, dfn, dfn, float('inf')))
         self.count += 1
@@ -237,8 +319,7 @@ class Prover:
         Checks if the sentence is allowed in the set of worlds currently
         chosen. This method updates self.choices if a choice is needed.
         """
-        #FIXME: Refactor self.choices to context thing
-        return worlds.evaluate(sentence, self.choices)
+        return worlds.evaluate(sentence, self.checker)
 
     def slg_resolve(self, clause, selected, other):
         """
@@ -502,7 +583,7 @@ class Prover:
                 fa = f
                 break
         assert fa is not None
-        
+
         fa.poslink = min(fa.poslink, mins.posmin)
         fa.neglink = min(fa.neglink, mins.negmin)
 
