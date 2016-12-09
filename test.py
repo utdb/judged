@@ -8,4 +8,6 @@ from test import test_parser
 from test import test_prover
 from test import test_cases
 
+from test import test_worlds
+
 run_tests()
