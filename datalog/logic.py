@@ -728,12 +728,13 @@ class ExactProver(Prover):
         # so call subsumption is not possible.
         #
         # However, subsumption through equality is still possible.
-        if self.debugger: self.debugger.note("answer_subsumed_by({}, {}) -> {}".format(clause, '{' + ', '.join("{}".format(a) for a in answers) + '}', clause in answers))
+        result = False
         for cl in answers:
             # XXX: cl.body and cl.delayed empty? This might be an issue.
             if cl.head == clause.head and worlds.equivalent(cl.sentence, clause.sentence, self.kb):
-                return True
-        return False
+                result =  True
+        if self.debugger: self.debugger.note("answer_subsumed_by({}, {}) -> {}".format(clause, '{' + ', '.join("{}".format(a) for a in answers) + '}', result))
+        return result
 
     def slg_positive(self, literal, clause, selected, mins):
         """
