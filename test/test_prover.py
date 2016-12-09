@@ -34,20 +34,20 @@ def primitives():
     kb.assert_clause(c1)
 
     query = lit(pred('y',1),[var('X')])
-    answer = prover.ask(query)
+    answer = prover.ask(query, lambda s: True)
     assert set(answer) == set([lit(pred('y',1), [const('foo')]), lit(pred('y',1), [const('bar')]), lit(pred('y',1), [const('baz')])])
 
     query = lit(pred('y',2), [const('twelve'), var('X')])
-    answer = prover.ask(query)
+    answer = prover.ask(query, lambda s: True)
     assert not set(answer)
 
     kb.assert_clause(clause(lit(pred('testpred', 1), [const('quux')]), []))
     query = lit(pred('y',1),[var('X')])
-    answer = prover.ask(query)
+    answer = prover.ask(query, lambda s: True)
     assert set(answer) == set([lit(pred('y',1), [const('foo')]), lit(pred('y',1), [const('bar')]), lit(pred('y',1), [const('baz')]), lit(pred('y',1), [const('quux')])])
 
     query = lit(pred('y',2), [const('twelve'), var('X')])
-    answer = prover.ask(query)
+    answer = prover.ask(query, lambda s: True)
     assert not set(answer)
 
 @test.prover
@@ -66,5 +66,5 @@ def equals():
         kb.assert_clause(clause(lit(pred('z',1), [const(v)]), []))
 
     query = lit(pred('y',1),[var('X')])
-    answer = prover.ask(query)
+    answer = prover.ask(query, lambda s: True)
     assert set(answer) == set([lit(pred('y',1), [const('foo')]), lit(pred('y',1), [const('bar')])])

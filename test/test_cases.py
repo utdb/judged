@@ -29,7 +29,7 @@ def make_suite(path):
                     elif action == 'retract':
                         kb.retract_clause(clause)
                     elif action == 'query':
-                        for a in prover.ask(clause):
+                        for a in prover.ask(clause.head, lambda s: True):
                             print("{}.".format(a), file=output_buffer)
                 except datalog.DatalogError as e:
                     raise AssertionError from e

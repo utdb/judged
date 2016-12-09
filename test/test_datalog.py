@@ -59,7 +59,7 @@ def tags():
     l3 = lit(p1, [var('A'), var('B')])
     l4 = lit(p2, [var('A'), var('B')])
     l5 = lit(p1, [const('alice'), var('B')], False)
-    
+
     assert l1.tag() == l2.tag()
     assert l1.tag() != l3.tag()
     assert l3.tag() != l4.tag()
@@ -193,7 +193,7 @@ def clause_subst():
     c2 = clause(l3, [l4])
 
     env = {var('A'): const('mary')}
-    
+
     assert c1.subst(env).id == c2.id
     assert c1.subst(None).id == c1.id
     assert c1.subst(dict()).id == c1.id
@@ -253,7 +253,7 @@ def clause_safe():
 
     c1 = clause(l1, [l2])
     c2 = clause(l2, [l1])
-    
+
     assert kb.is_safe(c1)
     assert not kb.is_safe(c2)
 
@@ -369,14 +369,14 @@ def ask():
         kb.assert_clause(ca)
 
     query = lit(pred('y',1),[var('X')])
-    answer = prover.ask(query)
-    
+    answer = prover.ask(query, lambda s: True)
+
     assert set(answer) == set([lit(pred('y',1), [const('alice')]), lit(pred('y',1), [const('susan')])])
 
     query = lit(pred('x',2), [var('X'), const('alice')])
-    answer = prover.ask(query)
+    answer = prover.ask(query, lambda s: True)
     assert not set(answer)
 
     query = lit(pred('nothere',1), [var('X')])
-    answer = prover.ask(query)
+    answer = prover.ask(query, lambda s: True)
     assert not set(answer)
