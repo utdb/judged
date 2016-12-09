@@ -172,10 +172,8 @@ def exclusion_matrix(partitions, kb):
 
 def equivalent(l, r, kb):
     """
-    Function to determine if two Sentences are the same. The function builds
-    a PyEdA Binary Decision Diagram (bdd) from the sentences and uses the bdd
-    equivalent() function to determine if both sentense are equivalent.
-    Sentences of the form var=N are translated to bdd var varN.
+    Determines if a descriptive sentence is equivalent to another, given the
+    mutual exclusions from the given knowledge base.
     """
     lbdd = l.create_bdd()
     rbdd = r.create_bdd()
