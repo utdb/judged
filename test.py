@@ -9,5 +9,6 @@ from test import test_prover
 from test import test_cases
 
 from test import test_worlds
+from test import test_knowledge
 
 run_tests()
