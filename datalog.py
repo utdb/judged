@@ -42,9 +42,16 @@ def query(clause, args):
         print(formatting.comment("% query ") + "{}".format(literal))
 
     result = context.ask(literal)
+
+    # LATER: `sorted` can be removed for python3.6 with stable dictionaries
+    for k in sorted(result.notes):
+        print(formatting.comment("% {}: {}".format(k, result.notes[k])))
+
     for a in result.answers:
-        # FIXME: Improve output handling
-        print("{}.".format(a.clause))
+        print("{}.".format(a.clause), end='')
+        if a.probability is not None:
+            print(formatting.comment(" % p = {}".format(a.probability)), end='')
+        print()
 
     # if args.json:
     #     result = dict()
