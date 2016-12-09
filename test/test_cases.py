@@ -12,12 +12,11 @@ from pathlib import Path
 import difflib
 
 
-def make_suite(path):
+def make_suite(path, root, context_type):
     @test.complex
     def suite():
-        expect_file = Path('test/cases') / (path.stem + '.txt')
-        kb = logic.Knowledge()
-        prover = logic.Prover(kb)
+        expect_file = root / (path.stem + '.txt')
+        context = context_type()
 
         output_buffer = io.StringIO()
 
@@ -25,12 +24,13 @@ def make_suite(path):
             for clause, action, location in parser.parse(f):
                 try:
                     if action == 'assert':
-                        kb.assert_clause(clause)
+                        context.knowledge.assert_clause(clause)
                     elif action == 'retract':
-                        kb.retract_clause(clause)
+                        context.knowledge.retract_clause(clause)
                     elif action == 'query':
-                        for a in prover.ask(clause.head, lambda s: True):
-                            print("{}.".format(a), file=output_buffer)
+                        literal = clause.head
+                        for a in context.ask(literal).answers:
+                            print("{}.".format(a.clause), file=output_buffer)
                 except datalog.DatalogError as e:
                     raise AssertionError from e
 
@@ -49,5 +49,11 @@ def make_suite(path):
     suite.__name__ = path.stem
 
 
-for case in Path('test/cases').glob('*.dl'):
-    make_suite(case)
+for case in Path('test/cases/deterministic').glob('*.dl'):
+    make_suite(case, Path('test/cases/deterministic'), logic.DeterministicContext)
+
+for case in Path('test/cases/exact').glob('*.dl'):
+    make_suite(case, Path('test/cases/exact'), logic.ExactContext)
+
+for case in Path('test/cases/montecarlo').glob('*.dl'):
+    make_suite(case, Path('test/cases/montecarlo'), logic.MontecarloContext)

@@ -1,0 +1,16 @@
+% test with four worlds
+% See in which worlds the coins come up equal
+
+coin(c1).
+coin(c2).
+
+result(c1, heads) [x=heads].
+result(c1, tails) [x=tails].
+result(c2, heads) [y=heads].
+result(c2, tails) [y=tails].
+
+toss(A, B) :- result(c1, A), result(c2, B).
+
+success :- toss(A, B) , A = B.
+
+success?

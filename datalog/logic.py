@@ -634,7 +634,7 @@ class ExactProver(Prover):
     """Prover for symbolic sentence handling. Subclasses the normal prover and
     only replaces those methods that are modified with respect to the normal
     operations."""
-    def ask(self, query, flush_cache=True):
+    def ask(self, query, checker):
         """
         Sets up and activates the subgoal search machinery. The answer is then
         returned as a list of proven facts. [Chen et al., Figure 13, p. 181]
@@ -642,6 +642,7 @@ class ExactProver(Prover):
         self.count = 1
         self.subgoals.clear()
         self.stack.clear()
+        self.checker = checker
 
         subgoal = Subgoal(query)
         self.subgoals[query.tag()] = subgoal

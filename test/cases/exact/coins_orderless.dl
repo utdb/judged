@@ -1,0 +1,15 @@
+% test with four worlds
+% Coin flip with two coins: order does not matter
+
+coin(c1).
+coin(c2).
+
+result(c1, heads) [x=heads].
+result(c1, tails) [x=tails].
+result(c2, heads) [y=heads].
+result(c2, tails) [y=tails].
+
+toss(A, B) :- result(c1, A), result(c2, B).
+toss(A, B) :- toss(B, A).
+
+toss(A, B)?

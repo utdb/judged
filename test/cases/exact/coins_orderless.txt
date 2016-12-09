@@ -1,0 +1,4 @@
+toss(heads, tails) [((x=tails and y=heads) or (x=heads and y=tails))].
+toss(heads, heads) [(x=heads and y=heads)].
+toss(tails, heads) [((x=tails and y=heads) or (x=heads and y=tails))].
+toss(tails, tails) [(x=tails and y=tails)].

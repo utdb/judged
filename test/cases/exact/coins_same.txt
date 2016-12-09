@@ -1,0 +1,1 @@
+success [((x=heads and y=heads) or (x=tails and y=tails))].
