@@ -21,8 +21,8 @@ class Result:
 
 
 class Context:
-    def __init__(self, kb, prover, cache=NoCache()):
-        self.knowledge = kb
+    def __init__(self, knowledge, prover, cache=NoCache()):
+        self.knowledge = knowledge
         self.prover = prover
         self.cache = cache
         self.prob = {}
@@ -44,8 +44,8 @@ class Context:
 
 class DeterministicContext(Context):
     def __init__(self, debugger=None, cache=NoCache()):
-        kb = Knowledge()
-        super().__init__(kb, Prover(kb, debugger=debugger), cache)
+        knowledge = Knowledge()
+        super().__init__(knowledge, Prover(knowledge, debugger=debugger), cache)
         self.choices = {}
 
     def check(self, key, part):
@@ -66,8 +66,8 @@ class DeterministicContext(Context):
 
 class ExactContext(Context):
     def __init__(self, debugger=None, cache=NoCache()):
-        kb = Knowledge()
-        super().__init__(kb, ExactProver(kb, debugger=debugger), cache)
+        knowledge = Knowledge()
+        super().__init__(knowledge, ExactProver(knowledge, debugger=debugger), cache)
 
     def check(self, key, part):
         # NOTE: This can be used to allow "conditioned queries" by restricting the world set
@@ -75,10 +75,12 @@ class ExactContext(Context):
 
 
 class MontecarloContext(Context):
-    def __init__(self, debugger=None, cache=NoCache()):
-        kb = Knowledge()
-        super().__init__(kb, Prover(kb, debugger=debugger), cache)
+    def __init__(self, number=1000, approximate=0, debugger=None, cache=NoCache()):
+        knowledge = Knowledge()
+        super().__init__(knowledge, Prover(knowledge, debugger=debugger), cache)
         self.choices = {}
+        self.number = number
+        self.approximate = approximate
 
     def check(self, key, part):
         if key not in self.choices:
@@ -102,7 +104,6 @@ class MontecarloContext(Context):
             raise DatalogError("Probabilities for partitioning '{}' not set".format(partitioning))
 
     def ask(self, query, flush_cache=True):
-        # FIXME: expects args.number, args.approximate
         if flush_cache:
             self.cache.clear()
 
@@ -116,7 +117,7 @@ class MontecarloContext(Context):
         def exact(w):
             result = 1
             for p,v in w:
-                result *= kb.prob[p][v]
+                result *= self.prob[p][v]
             return result
 
         def error():
@@ -126,19 +127,19 @@ class MontecarloContext(Context):
             result /= len(worlds)
             return result**0.5
 
-        while args.number == 0 or count < args.number:
+        while self.number == 0 or count < self.number:
             count += 1
 
             self.choices.clear()
-            answer = list(prover.ask(clause))
+            answer = list(self.prover.ask(query, self.check))
             world = frozenset(self.choices.items())
 
             for a in answer:
                 answers[a] += 1
             worlds[world] += 1
 
-            if args.approximate is not None:
-                if error() <= args.approximate:
+            if self.approximate is not None:
+                if error() <= self.approximate:
                     break
 
         return Result([Answer(a, p(c)) for a, c in answers.items()], iterations=count, error=error())
@@ -641,9 +642,6 @@ class ExactProver(Prover):
         self.count = 1
         self.subgoals.clear()
         self.stack.clear()
-        if flush_cache:
-            # FIXME: Refactor cache handling into context
-            self.cache.clear()
 
         subgoal = Subgoal(query)
         self.subgoals[query.tag()] = subgoal
@@ -704,6 +702,23 @@ class ExactProver(Prover):
         delayed = clause.delayed + [selected]
         return Clause(clause.head, body, delayed, worlds.conjunct(clause.sentence, other.sentence)).subst(env)
 
+    def slg_newclause(self, literal, clause, mins):
+        """
+        [Chen et al., Figure 14, p. 182]
+        """
+        selected = self.select(clause)
+        if selected is None:
+            if self.debugger: self.debugger.answer(literal, clause, selected)
+            self.slg_answer(literal, clause, mins)
+        elif selected.polarity == True:
+            if self.debugger: self.debugger.clause(literal, clause, selected, True)
+            self.slg_positive(literal, clause, selected, mins)
+        elif selected.polarity == False and selected.is_grounded():
+            if self.debugger: self.debugger.clause(literal, clause, selected, False)
+            raise DatalogError('Discovered a negative literal during reasoning: exact prover can not handle negation.')
+        else:
+            raise DatalogError('Selected a non-grounded negative literal.')
+
     def answer_subsumed_by(self, clause, answers):
         # Due to the safety constraints the clause's head will feature no
         # variables if the body is empty. slg_answer, and thus
@@ -712,7 +727,7 @@ class ExactProver(Prover):
         # so call subsumption is not possible.
         #
         # However, subsumption through equality is still possible.
-        if self.debugger: self.debugger.note("answer_subsumed_by({}, {}) -> {}".format(clause, answers, clause in answers))
+        if self.debugger: self.debugger.note("answer_subsumed_by({}, {}) -> {}".format(clause, '{' + ', '.join("{}".format(a) for a in answers) + '}', clause in answers))
         for cl in answers:
             # XXX: cl.body and cl.delayed empty? This might be an issue.
             if cl.head == clause.head and worlds.equivalent(cl.sentence, clause.sentence, self.kb):

@@ -128,12 +128,7 @@ def _parse(tokens):
             t_action = ts.next(lambda t: t[0] in (PERIOD, TILDE, QUERY), 'Expected period, tilde or question mark to indicate action.')
             action = actions[t_action[0]]
 
-            if action == 'query':
-                if len(clause) > 0:
-                    raise ParseError('Can not query for a clause (only literals can be queried on).', t_action[2])
-                yield (clause.head, action, LocationContext(start_t[2], t_action[2]))
-            else:
-                yield (clause, action, LocationContext(start_t[2], t_action[2]))
+            yield (clause, action, LocationContext(start_t[2], t_action[2]))
 
 
 def make_term(token):
@@ -330,4 +325,3 @@ def parse_annotation(ts):
     else:
         t = ts.peek()
         raise ParseError('Expected explicit probability assignment or distribution assignment.', t[2] if t is not None else None)
-

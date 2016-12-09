@@ -9,6 +9,7 @@ from datalog import parser
 from datalog import logic
 from datalog import formatting
 from datalog import caching
+from datalog import worlds
 
 import sys
 import os
@@ -31,21 +32,16 @@ context = None
 # FIXME: Refactor the query, assert, retract, and annotate actions to the context
 def query(clause, args):
     """Executes a query and presents the answers."""
+    if len(clause) > 0:
+        raise datalog.DatalogError('Cannot query for a clause (only literals can be queried on).')
+    if clause.sentence != worlds.Top():
+        raise datalog.DatalogError('Cannot perform a query with a descriptive sentence.')
+
+    literal = clause.head
     if args.verbose:
-        print(formatting.comment("% query ") + "{}".format(clause))
+        print(formatting.comment("% query ") + "{}".format(literal))
 
-    # determine debugger
-    # FIXME: Move up to context creation
-    debugger = None
-    if args.debug:
-        debugger = ReportingDebugger()
-
-    # FIXME: Move up to context creation
-    # determine cache mechanism
-    cache = {'none': caching.NoCache,
-             'dict': caching.DictCache}[args.cache]()
-
-    result = context.ask(clause)
+    result = context.ask(literal)
     for a in result.answers:
         # FIXME: Improve output handling
         print("{}.".format(a.clause))
@@ -228,45 +224,81 @@ def key_value_pair(string):
 
 def main():
     global context
-    options = argparse.ArgumentParser(description="{} entry point for interactive and batch use of datalog.".format(NAME))
-    options.add_argument('file', metavar='FILE', type=argparse.FileType('r', encoding='utf-8'), nargs='*',
-                         help='Input files to process in batch.')
-    options.add_argument('-i', '--import', default=False, action='store_true', dest='imports',
-                         help='Imports the datalog files before going to interactive mode.')
-    options.add_argument('-v', '--verbose', default=False, action='store_true',
-                         help='Increases verbosity. Outputs each imported statement before doing it.')
-    options.add_argument('-d', '--debug', default=False, action='store_true',
-                         help='Enables debugging output.')
-    options.add_argument('-t', '--type', default='deterministic', choices=('deterministic', 'exact', 'montecarlo'),
-                         help='Selects the prover type to use.')
-    # FIXME: Monte carlo only:
-    # options.add_argument('-n', '--number', type=int, default=1000,
-    #                      help='The maximum number of simulation runs to do. A value of zero means no maximum. Defaults to %(default)s.')
-    # options.add_argument('-a', '--approximate', type=float, default=0,
-    #                      help='The maximum allowable error for an approximation simulation. Defaults to %(default)s.')
 
-    # FIXME: Deterministic only:
-    # options.add_argument('-s', '--select', nargs='*',
-    #                      help='Restricts to a specific possible world by selecting partitions from the knowledge base.')
-    options.add_argument('-c', '--cache', choices=('dict', 'none'), default='dict',
+    # set up shared options for all prover commands
+    shared_options = argparse.ArgumentParser(add_help=False)
+    shared_options.add_argument('file', metavar='FILE', type=argparse.FileType('r', encoding='utf-8'), nargs='*',
+                         help='Input files to process in batch.')
+    shared_options.add_argument('-i', '--import', default=False, action='store_true', dest='imports',
+                         help='Imports the datalog files before going to interactive mode.')
+    shared_options.add_argument('-v', '--verbose', default=False, action='store_true',
+                         help='Increases verbosity. Outputs each imported statement before doing it.')
+    shared_options.add_argument('-d', '--debug', default=False, action='store_true',
+                         help='Enables debugging output.')
+    shared_options.add_argument('-c', '--cache', choices=('dict', 'none'), default='dict',
                          help='Selects the caching method to use. Defaults to the \'dict\' mechanism.')
 
     # FIXME: Move module loading/initializing out of here, and into annotations
-    options.add_argument('-m', '--module', nargs='*', default=[],
+    shared_options.add_argument('-m', '--module', nargs='*', default=[],
                          help='Any additional modules to load and initialize.')
-    options.add_argument('-o', '--option', nargs='*', type=key_value_pair, default={},
+    shared_options.add_argument('-o', '--option', nargs='*', type=key_value_pair, default={},
                          help='Module options to pass to loaded modules. Options should be formatted in a \'module:option=value\' pattern.')
 
     format_default = os.environ.get(FORMAT_ENV_KEY, 'color')
     if not sys.stdout.isatty():
         format_default = 'plain'
-    options.add_argument('-f', '--format', choices=('plain','color','html'), default=format_default,
+    shared_options.add_argument('-f', '--format', choices=('plain','color','html'), default=format_default,
                          help='Selects output format. Defaults to the value of the '+FORMAT_ENV_KEY+' environment variable if set, \'plain\' if it is not set or if the output is piped.')
     # FIXME: Usability feature for later (used in MC branch)
-    # options.add_argument('-j', '--json', default=False, action='store_true',
+    # shared_options.add_argument('-j', '--json', default=False, action='store_true',
     #                      help='Output query answers in JSON format.')
 
+    # build actual options
+    options = argparse.ArgumentParser(description="{} entry point for interactive and batch use of datalog.".format(NAME))
+
+    suboptions = options.add_subparsers(title='Subcommands for the judged datalog system', dest='type')
+
+    deterministic_options = suboptions.add_parser('deterministic', parents=[shared_options],
+                         help='Use the deterministic datalog prover')
+    # FIXME: Get world selection working
+    # deterministic_options.add_argument('-s', '--select', nargs='*',
+    #                      help='Restricts to a specific possible world by selecting partitions from the knowledge base.')
+
+    exact_options = suboptions.add_parser('exact', parents=[shared_options],
+                         help='Use the exact descriptive sentence datalog prover')
+
+    montecarlo_options = suboptions.add_parser('montecarlo', parents=[shared_options],
+                         help='Use the Monte Carlo estimated probabilities prover')
+    montecarlo_options.add_argument('-n', '--number', type=int, default=1000,
+                         help='The maximum number of simulation runs to do. A value of zero means no maximum. Defaults to %(default)s.')
+    montecarlo_options.add_argument('-a', '--approximate', type=float, default=0,
+                         help='The maximum allowable error for an approximation simulation. Defaults to %(default)s.')
+
     args = options.parse_args()
+
+    # determine debugger
+    debugger = None
+    if args.debug:
+        debugger = ReportingDebugger()
+
+    # determine cache mechanism
+    cache = {'none': caching.NoCache,
+             'dict': caching.DictCache}[args.cache]()
+
+    context_options = {
+        'debugger': debugger,
+        'cache': cache
+    }
+
+    if args.type == 'deterministic':
+        context = logic.DeterministicContext(**context_options)
+    elif args.type == 'exact':
+        context = logic.ExactContext(**context_options)
+    elif args.type == 'montecarlo':
+        context = logic.MontecarloContext(number=args.number, approximate=args.approximate, **context_options)
+    else:
+        options.print_help()
+        options.exit()
 
     datalog.formatting.default_format_spec = args.format
 
@@ -280,13 +312,6 @@ def main():
                 options.error(traceback.format_exc())
             else:
                 options.error(str(e))
-
-    if args.type == 'deterministic':
-        context = logic.DeterministicContext()
-    elif args.type == 'exact':
-        context = logic.ExactContext()
-    elif args.type == 'montecarlo':
-        context = logic.MontecarloContext()
 
     if args.file:
         batch(args.file, args)
