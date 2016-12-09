@@ -82,15 +82,15 @@ def annotate(annotation, args):
         context.add_probability(annotation[1].partitioning, annotation[1].part, annotation[2])
     elif annotation[0] == 'distribution':
         if args.verbose:
-            print("% annotate {} distribution for p({})".format(annotation[2], annotation[1]))
+            print(formatting.comment("% annotate {} distribution for p({})".format(annotation[2], annotation[1])))
 
         # determine all present parts
-        parts = self.knowledge.parts(annotation[1])
+        parts = context.knowledge.parts(annotation[1])
 
         if parts:
             for part in parts:
                 context.add_probability(annotation[1], part, 1/len(parts))
-                print("%% Setting p({}={}) = {}".format(annotation[1], part, 1/len(parts)))
+                print(formatting.comment("%% Setting p({}={}) = {}".format(annotation[1], part, 1/len(parts))))
     else:
         raise datalog.DatalogError("Unknown annotation {}".format(annotation))
 
