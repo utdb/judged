@@ -395,8 +395,6 @@ class Clause:
             result += '|'
             for lit in self.delayed:
                 result += add_size(lit.id)
-            # FIXME: The sentence statement is needed for Exact proving; but it creates unnecessary memory-inefficiencies for the other solvers
-            # HACK: Think through consequences of having the sentence in the ID for all solvers
             result += '%' + add_size(repr(self.sentence))
             self._id = result
         return result

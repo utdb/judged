@@ -414,8 +414,13 @@ class Prover:
         # so the body must be empty. Datalog does not support compound terms,
         # so call subsumption is not possible.
         #
-        # However, subsumption through equality is still possible.
-        return clause in answers
+        # However, subsumption through equality is still possible. So, we check
+        # all answers to see if the same head was already found (ignoring the
+        # sentence of the clause).
+        for cl in answers:
+            if cl.head == clause.head:
+                return True
+        return False
 
     def other_answer_with_same_head(self, clause, answers):
         for a in answers:
@@ -468,8 +473,13 @@ class Prover:
                 subgoal.poss.append(Waiter(literal, clause, selected))
                 self.update_lookup(literal, selected, True, mins)
             todo = []
+            def fact_in_collection(fact, collection):
+                for cl in collection:
+                    if cl.head == fact:
+                        return True
+                return False
             for c in subgoal.anss:
-                if Clause(c.head,[],[]) in subgoal.anss:
+                if fact_in_collection(c.head, subgoal.anss):
                     todo.append(self.slg_resolve(clause, selected, Clause(c.head,[],[])))
                 else:
                     todo.append(self.slg_factor(clause, selected, c))
