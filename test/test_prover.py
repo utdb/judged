@@ -35,7 +35,7 @@ def primitives():
 
     query = lit(pred('y',1),[var('X')])
     answer = prover.ask(query, lambda s: True)
-    assert set(answer) == set([lit(pred('y',1), [const('foo')]), lit(pred('y',1), [const('bar')]), lit(pred('y',1), [const('baz')])])
+    assert set(answer) == set([ clause(lit(pred('y',1), [const('foo')]),[],[]), clause(lit(pred('y',1), [const('bar')]),[],[]), clause(lit(pred('y',1), [const('baz')]),[],[]) ])
 
     query = lit(pred('y',2), [const('twelve'), var('X')])
     answer = prover.ask(query, lambda s: True)
@@ -44,7 +44,7 @@ def primitives():
     kb.assert_clause(clause(lit(pred('testpred', 1), [const('quux')]), []))
     query = lit(pred('y',1),[var('X')])
     answer = prover.ask(query, lambda s: True)
-    assert set(answer) == set([lit(pred('y',1), [const('foo')]), lit(pred('y',1), [const('bar')]), lit(pred('y',1), [const('baz')]), lit(pred('y',1), [const('quux')])])
+    assert set(answer) == set([ clause(lit(pred('y',1), [const('foo')]),[],[]),  clause(lit(pred('y',1), [const('bar')]),[],[]),  clause(lit(pred('y',1), [const('baz')]),[],[]),  clause(lit(pred('y',1), [const('quux')]),[],[])])
 
     query = lit(pred('y',2), [const('twelve'), var('X')])
     answer = prover.ask(query, lambda s: True)
@@ -67,4 +67,4 @@ def equals():
 
     query = lit(pred('y',1),[var('X')])
     answer = prover.ask(query, lambda s: True)
-    assert set(answer) == set([lit(pred('y',1), [const('foo')]), lit(pred('y',1), [const('bar')])])
+    assert set(answer) == set([clause(lit(pred('y',1), [const('foo')]),[],[]), clause(lit(pred('y',1), [const('bar')]),[],[])])

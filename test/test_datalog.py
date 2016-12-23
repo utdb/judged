@@ -371,7 +371,7 @@ def ask():
     query = lit(pred('y',1),[var('X')])
     answer = prover.ask(query, lambda s: True)
 
-    assert set(answer) == set([lit(pred('y',1), [const('alice')]), lit(pred('y',1), [const('susan')])])
+    assert set(answer) == set([ clause(lit(pred('y',1), [const('alice')]),[],[]), clause(lit(pred('y',1), [const('susan')]),[],[]) ])
 
     query = lit(pred('x',2), [var('X'), const('alice')])
     answer = prover.ask(query, lambda s: True)
