@@ -313,7 +313,7 @@ class Prover:
         for answer in subgoal.anss:
             if answer.head not in seen:
                 seen.add(answer.head)
-                yield answer.head
+                yield Clause(answer.head, [], [])
 
     def allows(self, sentence):
         """
