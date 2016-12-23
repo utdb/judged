@@ -283,6 +283,10 @@ def main():
 
     args = options.parse_args()
 
+    if not args.type:
+        options.print_help()
+        options.exit()
+
     # determine debugger
     debugger = None
     if args.debug:
@@ -303,9 +307,6 @@ def main():
         context = logic.ExactContext(**context_options)
     elif args.type == 'montecarlo':
         context = logic.MontecarloContext(number=args.number, approximate=args.approximate, **context_options)
-    else:
-        options.print_help()
-        options.exit()
 
     datalog.formatting.default_format_spec = args.format
 
