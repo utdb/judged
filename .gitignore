@@ -1,3 +1,5 @@
 __pycache__/
 env/
+dist/
+judged.egg-info/
 *.swp
