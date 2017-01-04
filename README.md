@@ -1,10 +1,6 @@
 JudgeD: Probabilistic Datalog
 =============================
 
-_You are on the master branch: this branch is the deterministic basis of
-JudgeD. Switch to either the `exact` or `montecarlo` branches for probabilistic
-variants._
-
 JudgeD is a proof-of-concept implementation of a probabilistic variant of
 [Datalog](https://en.wikipedia.org/wiki/Datalog). JudgeD is available under the
 MIT license.
@@ -16,25 +12,25 @@ Quick Start
 -----------
 
   1. Clone this repository
-  2. Switch to the `montecarlo` or `exact` branch
-  3. Have a look at the examples in `examples/`, or play with the interactive
+  2. Have a look at the examples in `examples/`, or play with the interactive
      interpreter: `./datalog.py`
 
 
 Variants
 --------
 
-The JudgeD repository currently has three branches: `master`, `exact` and
+The JudgeD solver currently has three variants: `deterministic`, `exact` and
 `montecarlo`.
 
-The `master` branch is the deterministic basis of JudgeD. It is an SLDNF based
-implementation of Datalog with negation in Python.
+The `deterministic` branch is the deterministic basis of JudgeD. It is an SLDNF
+based implementation of Datalog with negation in Python.
 
 The `exact` and `montecarlo` branches are two proof-of-concept implementations
-of probabilistic datalog. The `exact` version does not (yet) calculate
-probabilities but determines the exact sentence describing the validity of the
-answers. The `montecarlo` version calculate answer probabilities through Monte
-Carlo simulation fo multiple answering runs.
+of probabilistic datalog. The `exact` version determines the exact sentence
+describing the validity of the answers, it does net calculate probabilities, nor
+does it handle negation. The `montecarlo` version calculate answer probabilities
+through Monte Carlo simulation, it approximates the probabilities but does not
+provide an exact sentence.
 
 
 Syntax
@@ -47,7 +43,7 @@ would be:
 
     heads(c1) [x=1].
     tails(c1) [x=2].
-    
+
     @P(x=1) = 0.5.
     @P(x=2) = 0.5.
 
@@ -82,24 +78,25 @@ given partition have been defined.
 Interpreter
 -----------
 
-Extensive help can be produced by invoking `datalog.py` with the `--help` flag.
+Interpreter parameter documentation can be produced by invoking `datalog.py`
+with the `--help` flag. The subcommands each have their own help documentation.
 For ease of use, some useful combinations are given here.
 
-`datalog.py -v`: runs an interactive datalog prompt in verbose mode, showing
-each statement is it is processed.
+`datalog.py exact --help`: Gets the full list of options for the `exact` variant
+of JudgeD.
 
-`datalog.py -f color -v -i examples/power.dl`: `-f color` Explicitly declares
-colored output formatting, `-v` runs in verbose mode to show each statement as
-it is processed, and `-i` switches to interactive mode after the given files
-are processed.
+`datalog.py deterministic -v`: runs an interactive deterministic datalog prompt
+in verbose mode, showing each statement is it is processed.
 
-`datalog.py -d examples/ancestor.dl`: Runs the ancestor.dl example file with a
-debugging trace of the query answering process.
+`datalog.py deterministic -f color -v -i examples/power.dl`: `-f color`
+Explicitly declares colored output formatting, `-v` runs in verbose mode to show
+each statement as it is processed, and `-i` switches to interactive mode after
+the given files are processed.
 
-`datalog.py -m examples.demosql examples/demosql.dl`: Loads the external data
-module `examples.demosql` (note that this is loaded according to Pyhton's
-module path), and runs the example file that uses the externally defined
-`triple` predicate.
+`datalog.py deterministic -d examples/ancestor.dl`: Runs the ancestor.dl example
+file with a debugging trace of the query answering process.
 
-`datalog.py --help`: Gets the full list of options for the current variant of
-JudgeD.
+`datalog.py deterministic -m examples.demosql examples/demosql.dl`: Loads the
+external data module `examples.demosql` (note that this is loaded according to
+Pyhton's module path), and runs the example file that uses the externally
+defined `triple` predicate.
