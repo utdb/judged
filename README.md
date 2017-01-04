@@ -13,7 +13,7 @@ Quick Start
 
   1. Clone this repository
   2. Have a look at the examples in `examples/`, or play with the interactive
-     interpreter: `./datalog.py`
+     interpreter: `./judged.py`
 
 
 Variants
