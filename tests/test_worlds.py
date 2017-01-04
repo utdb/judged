@@ -2,7 +2,7 @@
 
 import io
 
-from test.lawful import test
+from tests.lawful import test
 
 import judged
 from judged import tokenizer

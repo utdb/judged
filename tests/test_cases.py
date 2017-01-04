@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.4
 
-from test.lawful import test, run_tests
+from tests.lawful import test, run_tests
 
 import judged
 from judged import tokenizer
@@ -72,11 +72,11 @@ def make_suite(path, root, context_type):
     suite.__name__ = path.stem
 
 
-for case in Path('test/cases/deterministic').glob('*.dl'):
-    make_suite(case, Path('test/cases/deterministic'), logic.DeterministicContext)
+for case in Path('tests/cases/deterministic').glob('*.dl'):
+    make_suite(case, Path('tests/cases/deterministic'), logic.DeterministicContext)
 
-for case in Path('test/cases/exact').glob('*.dl'):
-    make_suite(case, Path('test/cases/exact'), logic.ExactContext)
+for case in Path('tests/cases/exact').glob('*.dl'):
+    make_suite(case, Path('tests/cases/exact'), logic.ExactContext)
 
-for case in Path('test/cases/montecarlo').glob('*.dl'):
-    make_suite(case, Path('test/cases/montecarlo'), logic.MontecarloContext)
+for case in Path('tests/cases/montecarlo').glob('*.dl'):
+    make_suite(case, Path('tests/cases/montecarlo'), logic.MontecarloContext)

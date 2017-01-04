@@ -1,4 +1,4 @@
-from test.lawful import test, run_tests
+from tests.lawful import test, run_tests
 
 from judged import tokenizer
 from judged import parser
@@ -44,4 +44,3 @@ query{ ancestor(A, B) }"""
     result = '\n'.join(buffer)
 
     assert result == expected
-

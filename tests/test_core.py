@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.4
 
-from test.lawful import test, run_tests
+from tests.lawful import test, run_tests
 
 import judged
 from judged.logic import Knowledge, Prover

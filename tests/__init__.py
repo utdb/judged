@@ -86,7 +86,7 @@ def run_tests():
     parser.add_argument('-t', '--test', default=[], nargs='*',
                         help='The tests to run.')
     options = parser.parse_args()
-    
+
     # handle list option
     if options.list:
         categories = {c for c,t in checks}
@@ -137,5 +137,3 @@ def run_tests():
     report()
     report('='*80)
     sys.exit(1 if failure > 0 else 0)
-
-

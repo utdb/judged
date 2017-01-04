@@ -1,4 +1,4 @@
-from test.lawful import test, run_tests
+from tests.lawful import test, run_tests
 from judged.tokenizer import *
 from judged.tokens import *
 
@@ -94,4 +94,3 @@ ancestor(A, B)?
 
     tokens = list(tokenize(io.StringIO(source)))
     assert tokens == result
-
