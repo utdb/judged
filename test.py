@@ -2,7 +2,7 @@
 
 from test.lawful import run_tests
 
-from test import test_datalog
+from test import test_core
 from test import test_tokenizer
 from test import test_parser
 from test import test_prover

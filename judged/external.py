@@ -1,6 +1,6 @@
 from functools import wraps
 
-import datalog
+import judged
 
 
 def sql_simple(connection, predicate, table, columns):
@@ -39,9 +39,9 @@ def sql_simple(connection, predicate, table, columns):
         for row in connection.execute(query, constants):
             values = []
             for v in row:
-                values.append(datalog.Constant(str(v), kind='string', data=v))
-            head = datalog.Literal(predicate, values)
-            yield datalog.Clause(head)
+                values.append(judged.Constant(str(v), kind='string', data=v))
+            head = judged.Literal(predicate, values)
+            yield judged.Clause(head)
     return native
 
 
@@ -51,7 +51,7 @@ class SqlBindings:
         self.kb = kb
 
     def simple(self, predicate, table, columns, caching=None):
-        pred = datalog.Predicate(*predicate)
+        pred = judged.Predicate(*predicate)
         func = sql_simple(self.connection, pred, table, columns)
         if caching is not None:
             func = caching(func)
@@ -93,12 +93,12 @@ def conservative_loading():
 def eager_loading(consider_free=None):
     if consider_free is None:
         def transform_literal(literal):
-            new_terms = [datalog.make_fresh_var() for t in literal.terms]
-            return datalog.Literal(literal.pred, new_terms)
+            new_terms = [judged.make_fresh_var() for t in literal.terms]
+            return judged.Literal(literal.pred, new_terms)
     else:
         def transform_literal(literal):
-            new_terms = [datalog.make_fresh_var() if i in consider_free else t for i,t in enumerate(literal.terms)]
-            return datalog.Literal(literal.pred, new_terms)
+            new_terms = [judged.make_fresh_var() if i in consider_free else t for i,t in enumerate(literal.terms)]
+            return judged.Literal(literal.pred, new_terms)
 
     return _caching_decorator(transform_literal)
 

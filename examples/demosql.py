@@ -1,8 +1,8 @@
 import sqlite3
 
-import datalog
-from datalog.external import SqlBindings
-from datalog.external import eager_loading, conservative_loading, custom_strategy
+import judged
+from judged.external import SqlBindings
+from judged.external import eager_loading, conservative_loading, custom_strategy
 
 
 def preload_for_predicates(literal):
@@ -15,8 +15,8 @@ def preload_for_predicates(literal):
     mechanism.
     """
     if literal.terms[1].is_const():
-        new_terms = [datalog.make_fresh_var(), literal.terms[1], literal.terms[2]]
-        return datalog.Literal(literal.pred, new_terms)
+        new_terms = [judged.make_fresh_var(), literal.terms[1], literal.terms[2]]
+        return judged.Literal(literal.pred, new_terms)
     else:
         return literal
 

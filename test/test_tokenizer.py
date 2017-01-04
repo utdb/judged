@@ -1,6 +1,6 @@
 from test.lawful import test, run_tests
-from datalog.tokenizer import *
-from datalog.tokens import *
+from judged.tokenizer import *
+from judged.tokens import *
 
 
 lc = LocationContext

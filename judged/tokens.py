@@ -1,5 +1,5 @@
 """
-The tokens used in tokenization and parsing of datalog.
+The tokens used in tokenization and parsing of judged.
 """
 
 class Token:

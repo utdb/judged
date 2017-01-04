@@ -1,5 +1,5 @@
 """
-String formatting for datalog output.
+String formatting for judged output.
 """
 
 string_escapes = str.maketrans({
@@ -94,7 +94,7 @@ def literal(lit, format_spec=None):
     """
     Formats a literal for output.
     """
-    from datalog import primitives
+    from judged import primitives
 
     format_spec = format_spec or default_format_spec
 
@@ -121,7 +121,7 @@ def clause(cl, format_spec=None):
     """
     Formats a clause for output.
     """
-    from datalog import worlds
+    from judged import worlds
 
     format_spec = format_spec or default_format_spec
 

@@ -4,10 +4,10 @@ import io
 
 from test.lawful import test
 
-import datalog
-from datalog import tokenizer
-from datalog import parser
-from datalog import worlds
+import judged
+from judged import tokenizer
+from judged import parser
+from judged import worlds
 
 
 class TestKB():

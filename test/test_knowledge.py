@@ -2,26 +2,26 @@
 
 from test.lawful import test, run_tests
 
-import datalog
-import datalog.logic
-import datalog.worlds
+import judged
+import judged.logic
+import judged.worlds
 
-var = datalog.Variable
-const = datalog.Constant
-pred = datalog.Predicate
-lit = datalog.Literal
-clause = datalog.Clause
+var = judged.Variable
+const = judged.Constant
+pred = judged.Predicate
+lit = judged.Literal
+clause = judged.Clause
 
-wor = datalog.worlds.Disjunction
-wand = datalog.worlds.Conjunction
-wnot = datalog.worlds.Negation
-wlabel = datalog.worlds.Label
-wtop = datalog.worlds.Top
-wbottom = datalog.worlds.Bottom
+wor = judged.worlds.Disjunction
+wand = judged.worlds.Conjunction
+wnot = judged.worlds.Negation
+wlabel = judged.worlds.Label
+wtop = judged.worlds.Top
+wbottom = judged.worlds.Bottom
 
 @test.knowledge
 def primitives():
-    kb = datalog.logic.Knowledge()
+    kb = judged.logic.Knowledge()
 
     l1 = lit(pred('f', 1), [var('X')])
     l2 = lit(pred('g', 1), [var('X')])

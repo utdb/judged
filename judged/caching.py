@@ -1,4 +1,4 @@
-from datalog import CacheError
+from judged import CacheError
 
 
 class NoCache:

@@ -1,13 +1,13 @@
 """
-Tokenization module for datalog sources.
+Tokenization module for judged sources.
 
 The tokenizer is implemented as a hard-coded state machine supported through
 several lookup tables.
 """
 
-import datalog
-from datalog import TokenizeError
-from datalog.tokens import *
+import judged
+from judged import TokenizeError
+from judged.tokens import *
 
 # punctuation to token type lookup
 punctuation = {

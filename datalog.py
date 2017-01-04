@@ -3,13 +3,13 @@
 Entry point to provide REPL and file processing.
 """
 
-import datalog
-from datalog import tokenizer
-from datalog import parser
-from datalog import logic
-from datalog import formatting
-from datalog import caching
-from datalog import worlds
+import judged
+from judged import tokenizer
+from judged import parser
+from judged import logic
+from judged import formatting
+from judged import caching
+from judged import worlds
 
 import sys
 import os
@@ -19,7 +19,7 @@ import traceback
 
 
 # Public constants
-NAME  = 'Datalog'
+NAME  = 'JudgeD'
 FLUFF = '^_^'
 __version__ = '0.2'
 
@@ -33,9 +33,9 @@ context = None
 def query(clause, args):
     """Executes a query and presents the answers."""
     if len(clause) > 0:
-        raise datalog.DatalogError('Cannot query for a clause (only literals can be queried on).')
+        raise judged.JudgedError('Cannot query for a clause (only literals can be queried on).')
     if clause.sentence != worlds.Top():
-        raise datalog.DatalogError('Cannot perform a query with a descriptive sentence.')
+        raise judged.JudgedError('Cannot perform a query with a descriptive sentence.')
 
     literal = clause.head
     if args.verbose:
@@ -75,7 +75,7 @@ def query(clause, args):
 
 def annotate(annotation, args):
     """
-    Handles annotations in the datalog source.
+    Handles annotations in the judged source.
     """
     if annotation[0] == 'probability':
         if args.verbose: print(formatting.comment("% annotate ") + "p({}) = {}".format(annotation[1], annotation[2]))
@@ -92,7 +92,7 @@ def annotate(annotation, args):
                 context.add_probability(annotation[1], part, 1/len(parts))
                 print(formatting.comment("%% Setting p({}={}) = {}".format(annotation[1], part, 1/len(parts))))
     else:
-        raise datalog.DatalogError("Unknown annotation {}".format(annotation))
+        raise judged.JudgedError("Unknown annotation {}".format(annotation))
 
 
 def assert_clause(clause, args):
@@ -124,7 +124,7 @@ def handle_reader(reader, args):
     for clause, action, location in parser.parse(reader):
         try:
             actions[action](clause, args)
-        except datalog.DatalogError as e:
+        except judged.JudgedError as e:
             e.context = location
             raise e
 
@@ -138,7 +138,7 @@ def batch(readers, args):
     for reader in readers:
         try:
             handle_reader(reader, args)
-        except datalog.DatalogError as e:
+        except judged.JudgedError as e:
             print("{}{}: {}".format(reader.name, e.context, e.message))
             break
 
@@ -154,7 +154,7 @@ def interactive_command(line, args):
     elif command == 'help':
         print(formatting.comment('% available commands: help, kb'))
     else:
-        raise datalog.DatalogError("Unknown command '{}'".format(command))
+        raise judged.JudgedError("Unknown command '{}'".format(command))
 
 
 def interactive(args):
@@ -179,7 +179,7 @@ def interactive(args):
                     interactive_command(line, args)
                 else:
                     handle_reader(io.StringIO(line), args)
-            except datalog.DatalogError as e:
+            except judged.JudgedError as e:
                 print("Error: {}".format(e.message))
     except EOFError:
         print()
@@ -237,7 +237,7 @@ def main():
     shared_options.add_argument('file', metavar='FILE', type=argparse.FileType('r', encoding='utf-8'), nargs='*',
                          help='Input files to process in batch.')
     shared_options.add_argument('-i', '--import', default=False, action='store_true', dest='imports',
-                         help='Imports the datalog files before going to interactive mode.')
+                         help='Imports the judged files before going to interactive mode.')
     shared_options.add_argument('-v', '--verbose', default=False, action='store_true',
                          help='Increases verbosity. Outputs each imported statement before doing it.')
     shared_options.add_argument('-d', '--debug', default=False, action='store_true',
@@ -261,18 +261,18 @@ def main():
     #                      help='Output query answers in JSON format.')
 
     # build actual options
-    options = argparse.ArgumentParser(description="{} entry point for interactive and batch use of datalog.".format(NAME))
+    options = argparse.ArgumentParser(description="{} entry point for interactive and batch use of judged.".format(NAME))
 
-    suboptions = options.add_subparsers(title='Subcommands for the judged datalog system', dest='type')
+    suboptions = options.add_subparsers(title='Subcommands for the judged judged system', dest='type')
 
     deterministic_options = suboptions.add_parser('deterministic', parents=[shared_options],
-                         help='Use the deterministic datalog prover')
+                         help='Use the deterministic judged prover')
     # FIXME: Get world selection working
     # deterministic_options.add_argument('-s', '--select', nargs='*',
     #                      help='Restricts to a specific possible world by selecting partitions from the knowledge base.')
 
     exact_options = suboptions.add_parser('exact', parents=[shared_options],
-                         help='Use the exact descriptive sentence datalog prover')
+                         help='Use the exact descriptive sentence judged prover')
 
     montecarlo_options = suboptions.add_parser('montecarlo', parents=[shared_options],
                          help='Use the Monte Carlo estimated probabilities prover')
@@ -308,7 +308,7 @@ def main():
     elif args.type == 'montecarlo':
         context = logic.MontecarloContext(number=args.number, approximate=args.approximate, **context_options)
 
-    datalog.formatting.default_format_spec = args.format
+    judged.formatting.default_format_spec = args.format
 
     for module in args.module:
         config = {k: v for m,k,v in args.option if m==module}

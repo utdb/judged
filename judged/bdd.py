@@ -1,4 +1,4 @@
-from datalog.interned import InternalizeMeta
+from judged.interned import InternalizeMeta
 from operator import attrgetter
 
 class Node(metaclass=InternalizeMeta):

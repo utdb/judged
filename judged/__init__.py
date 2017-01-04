@@ -1,30 +1,30 @@
 """
-The datalog module.
+The judged module.
 """
 
-from datalog import interned
-from datalog import worlds
-from datalog import formatting
+from judged import interned
+from judged import worlds
+from judged import formatting
 
 
 __all__ = [
-    'DatalogError', 'ParseError', 'TokenizeError', 'CacheError',
+    'JudgedError', 'ParseError', 'TokenizeError', 'CacheError',
     'Constant', 'Variable', 'Predicate', 'Literal', 'Clause'
 ]
 
 
-class DatalogError(Exception):
+class JudgedError(Exception):
     """
-    Base error for all errors produced by datalog.
+    Base error for all errors produced by judged.
     """
     def __init__(self, message, context=None):
         self.message = message
         self.context = context
 
 
-class ParseError(DatalogError):
+class ParseError(JudgedError):
     """
-    An error during the parsing of a datalog source.
+    An error during the parsing of a judged source.
     """
     pass
 
@@ -35,7 +35,7 @@ class TokenizeError(ParseError):
     """
     pass
 
-class CacheError(DatalogError):
+class CacheError(JudgedError):
     """
     An error occurred during cache handling.
     """
@@ -342,7 +342,7 @@ class Literal:
 
 class Clause:
     """
-    A datalog clause consist of a head literal, zero or more body literals,
+    A judged clause consist of a head literal, zero or more body literals,
     zero or more delayed literals and a descriptive sentence. A clause without
     a body is called a 'fact', and a clause with a body is called a 'rule'.
 

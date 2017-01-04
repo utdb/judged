@@ -1,7 +1,7 @@
 from test.lawful import test, run_tests
 
-from datalog import tokenizer
-from datalog import parser
+from judged import tokenizer
+from judged import parser
 
 
 @test.parser

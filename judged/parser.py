@@ -5,13 +5,13 @@ The parser structure is a recursive descent parser with look ahead N through an
 unlimited pushback buffer.
 """
 
-import datalog
-from datalog import tokenizer
-from datalog.tokens import *
-from datalog import worlds
+import judged
+from judged import tokenizer
+from judged.tokens import *
+from judged import worlds
 
-from datalog import ParseError
-from datalog.tokenizer import LocationContext
+from judged import ParseError
+from judged.tokenizer import LocationContext
 
 
 class Tokens:
@@ -142,19 +142,19 @@ def make_term(token):
 
     # See if this is a variable
     if kind == NAME and spelling[:1].isupper():
-        return datalog.Variable(spelling)
+        return judged.Variable(spelling)
 
     # See if this is a do not care variable
     if kind == NAME and spelling == '_':
-        return datalog.make_fresh_var()
+        return judged.make_fresh_var()
 
     # handle constants
     if kind == NAME:
-        return datalog.Constant(spelling)
+        return judged.Constant(spelling)
     elif kind == STRING:
-        return datalog.Constant(str(spelling), kind='string', data=spelling)
+        return judged.Constant(str(spelling), kind='string', data=spelling)
     elif kind == NUMBER:
-        return datalog.Constant(str(spelling), kind='number', data=spelling)
+        return judged.Constant(str(spelling), kind='number', data=spelling)
 
 
 def parse_literal(ts):
@@ -194,9 +194,9 @@ def parse_literal(ts):
         raise ParseError('Expected a name as predicate.', pred[2])
 
     # convert the tokens to a literal
-    predicate = datalog.Predicate(pred[1], len(terms))
+    predicate = judged.Predicate(pred[1], len(terms))
     body = [make_term(t) for t in terms]
-    return datalog.Literal(predicate, body, polarity)
+    return judged.Literal(predicate, body, polarity)
 
 
 def parse_descriptive_label(ts):
@@ -285,7 +285,7 @@ def parse_clause(ts):
         sentence = parse_sentence(ts)
         ts.expect(RBRACKET)
 
-    return datalog.Clause(head, literals, [], sentence)
+    return judged.Clause(head, literals, [], sentence)
 
 
 def parse_probability(ts):

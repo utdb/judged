@@ -2,15 +2,15 @@
 
 from test.lawful import test, run_tests
 
-import datalog
-from datalog.logic import Knowledge
-from datalog.logic import Prover
+import judged
+from judged.logic import Knowledge
+from judged.logic import Prover
 
-var = datalog.Variable
-const = datalog.Constant
-pred = datalog.Predicate
-lit = datalog.Literal
-clause = datalog.Clause
+var = judged.Variable
+const = judged.Constant
+pred = judged.Predicate
+lit = judged.Literal
+clause = judged.Clause
 
 @test.prover
 def primitives():

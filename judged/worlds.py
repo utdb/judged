@@ -2,9 +2,9 @@
 Module responsible for possible world and descriptive sentence handling.
 """
 
-from datalog import bdd
-from datalog import interned
-from datalog import formatting
+from judged import bdd
+from judged import interned
+from judged import formatting
 
 
 class Sentence:

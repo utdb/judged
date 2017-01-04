@@ -2,10 +2,10 @@
 
 from test.lawful import test, run_tests
 
-import datalog
-from datalog import tokenizer
-from datalog import parser
-from datalog import logic
+import judged
+from judged import tokenizer
+from judged import parser
+from judged import logic
 
 import io
 from pathlib import Path
@@ -46,7 +46,7 @@ def make_suite(path, root, context_type):
                         literal = clause.head
                         for a in context.ask(literal).answers:
                             output.append(a.clause)
-                except datalog.DatalogError as e:
+                except judged.JudgedError as e:
                     raise AssertionError from e
 
         with expect_file.open() as f:

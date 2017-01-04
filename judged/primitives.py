@@ -2,7 +2,7 @@
 The definitions of builtin predicates.
 """
 
-from datalog import Predicate, Literal, Constant, Clause
+from judged import Predicate, Literal, Constant, Clause
 
 
 # Defines the built-in equality predicate '='

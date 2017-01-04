@@ -1,15 +1,15 @@
 """
-Core datalog module that provides classes for terms, predicates, literals, and
+Core judged module that provides classes for terms, predicates, literals, and
 clauses as well as a Knowledge base implementation and a Prover.
 """
 
 import random
 import collections
 
-from datalog import *
-from datalog import worlds
-import datalog.primitives
-from datalog.caching import NoCache
+from judged import *
+from judged import worlds
+import judged.primitives
+from judged.caching import NoCache
 
 
 Answer = collections.namedtuple('Answer', ['clause', 'probability'])
@@ -52,7 +52,7 @@ class DeterministicContext(Context):
         try:
             self.choices[key] == part
         except KeyError:
-            raise DatalogError("Can not check whether label '{key}={part}' holds, no part is selected for the partitioning '{key}'.".format(
+            raise JudgedError("Can not check whether label '{key}={part}' holds, no part is selected for the partitioning '{key}'.".format(
                 key=key,
                 part=part
             ))
@@ -99,9 +99,9 @@ class MontecarloContext(Context):
                 a += prob
                 if a >= r:
                     return part
-            raise DatalogError("Probabilities for partitioning '{}' do not sum to 1.0.".format(partitioning))
+            raise JudgedError("Probabilities for partitioning '{}' do not sum to 1.0.".format(partitioning))
         except:
-            raise DatalogError("Probabilities for partitioning '{}' not set".format(partitioning))
+            raise JudgedError("Probabilities for partitioning '{}' not set".format(partitioning))
 
     def ask(self, query, flush_cache=True):
         if flush_cache:
@@ -156,7 +156,7 @@ class Knowledge:
         self.db = dict()
         self.prim = dict()
 
-        datalog.primitives.register_primitives(self)
+        judged.primitives.register_primitives(self)
 
     def is_safe(self, clause):
         """
@@ -180,7 +180,7 @@ class Knowledge:
     def assert_clause(self, clause):
         """Asserts a clause. Raises an error if the clause is unsafe."""
         if not self.is_safe(clause):
-            raise DatalogError("Asserted clause is unsafe: '{}'".format(clause))
+            raise JudgedError("Asserted clause is unsafe: '{}'".format(clause))
 
         pred = clause.head.pred
         db = self.db.setdefault(pred, dict())
@@ -405,13 +405,13 @@ class Prover:
             if self.debugger: self.debugger.clause(literal, clause, selected, False)
             self.slg_negative(literal, clause, selected.invert(), mins)
         else:
-            raise DatalogError('Selected a non-grounded negative literal.')
+            raise JudgedError('Selected a non-grounded negative literal.')
 
     def answer_subsumed_by(self, clause, answers):
         # Due to the safety constraints the clause's head will feature no
         # variables if the body is empty. slg_answer, and thus
         # answer_subsumed_by, is only called after no literal can be selected
-        # so the body must be empty. Datalog does not support compound terms,
+        # so the body must be empty. Judged does not support compound terms,
         # so call subsumption is not possible.
         #
         # However, subsumption through equality is still possible. So, we check
@@ -726,15 +726,15 @@ class ExactProver(Prover):
             self.slg_positive(literal, clause, selected, mins)
         elif selected.polarity == False and selected.is_grounded():
             if self.debugger: self.debugger.clause(literal, clause, selected, False)
-            raise DatalogError('Discovered a negative literal during reasoning: exact prover can not handle negation.')
+            raise JudgedError('Discovered a negative literal during reasoning: exact prover can not handle negation.')
         else:
-            raise DatalogError('Selected a non-grounded negative literal.')
+            raise JudgedError('Selected a non-grounded negative literal.')
 
     def answer_subsumed_by(self, clause, answers):
         # Due to the safety constraints the clause's head will feature no
         # variables if the body is empty. slg_answer, and thus
         # answer_subsumed_by, is only called after no literal can be selected
-        # so the body must be empty. Datalog does not support compound terms,
+        # so the body must be empty. Judged does not support compound terms,
         # so call subsumption is not possible.
         #
         # However, subsumption through equality is still possible.

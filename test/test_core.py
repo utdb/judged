@@ -2,15 +2,15 @@
 
 from test.lawful import test, run_tests
 
-import datalog
-from datalog.logic import Knowledge, Prover
-from datalog.worlds import Top
+import judged
+from judged.logic import Knowledge, Prover
+from judged.worlds import Top
 
-var = datalog.Variable
-const = datalog.Constant
-pred = datalog.Predicate
-lit = datalog.Literal
-clause = datalog.Clause
+var = judged.Variable
+const = judged.Constant
+pred = judged.Predicate
+lit = judged.Literal
+clause = judged.Clause
 
 @test.core
 def interalization():
