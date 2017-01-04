@@ -170,7 +170,7 @@ def interactive(args):
         pass
 
     try:
-        print("{} {} ({})".format(NAME, __version__, FLUFF))
+        print("{} {} ({})".format(NAME + ", {} variant".format(args.type), __version__, FLUFF))
         print()
         while True:
             line = input('> ')
@@ -262,20 +262,25 @@ def main():
 
     # build actual options
     options = argparse.ArgumentParser(description="{} entry point for interactive and batch use of judged.".format(NAME))
+    options.set_defaults(type=None)
 
-    suboptions = options.add_subparsers(title='Subcommands for the judged judged system', dest='type')
+    suboptions = options.add_subparsers(title='Subcommands for the judged judged system')
 
-    deterministic_options = suboptions.add_parser('deterministic', parents=[shared_options],
+    deterministic_options = suboptions.add_parser('deterministic', aliases=['det'], parents=[shared_options],
                          help='Use the deterministic judged prover')
+    deterministic_options.set_defaults(type='deterministic')
+
     # FIXME: Get world selection working
     # deterministic_options.add_argument('-s', '--select', nargs='*',
     #                      help='Restricts to a specific possible world by selecting partitions from the knowledge base.')
 
-    exact_options = suboptions.add_parser('exact', parents=[shared_options],
+    exact_options = suboptions.add_parser('exact', aliases=['ex'], parents=[shared_options],
                          help='Use the exact descriptive sentence judged prover')
+    exact_options.set_defaults(type='exact')
 
-    montecarlo_options = suboptions.add_parser('montecarlo', parents=[shared_options],
+    montecarlo_options = suboptions.add_parser('montecarlo', aliases=['mc'], parents=[shared_options],
                          help='Use the Monte Carlo estimated probabilities prover')
+    montecarlo_options.set_defaults(type='montecarlo')
     montecarlo_options.add_argument('-n', '--number', type=int, default=1000,
                          help='The maximum number of simulation runs to do. A value of zero means no maximum. Defaults to %(default)s.')
     montecarlo_options.add_argument('-a', '--approximate', type=float, default=0,
