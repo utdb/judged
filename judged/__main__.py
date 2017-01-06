@@ -8,7 +8,6 @@ from judged import tokenizer
 from judged import parser
 from judged import logic
 from judged import formatting
-from judged import caching
 from judged import worlds
 
 import sys
@@ -219,16 +218,6 @@ class ReportingDebugger:
         print(formatting.comment("{}(note:".format(self.indent())), message,formatting.comment(')'))
 
 
-def key_value_pair(string):
-    parts = string.split('=')
-    if len(parts) != 2:
-        raise argparse.ArgumentTypeError("'{}' is not a key value pair".format(string))
-    config = parts[0].split(':')
-    if len(config) != 2:
-        raise argparse.ArgumentTypeError("'{}' is not a module:option identifier".format(parts[0]))
-    return (config[0], config[1], parts[1])
-
-
 def main():
     global context
 
@@ -242,14 +231,6 @@ def main():
                          help='Increases verbosity. Outputs each imported statement before doing it.')
     shared_options.add_argument('-d', '--debug', default=False, action='store_true',
                          help='Enables debugging output.')
-    shared_options.add_argument('-c', '--cache', choices=('dict', 'none'), default='dict',
-                         help='Selects the caching method to use. Defaults to the \'dict\' mechanism.')
-
-    # FIXME: Move module loading/initializing out of here, and into annotations
-    shared_options.add_argument('-m', '--module', nargs='*', default=[],
-                         help='Any additional modules to load and initialize.')
-    shared_options.add_argument('-o', '--option', nargs='*', type=key_value_pair, default={},
-                         help='Module options to pass to loaded modules. Options should be formatted in a \'module:option=value\' pattern.')
 
     format_default = os.environ.get(FORMAT_ENV_KEY, 'color')
     if not sys.stdout.isatty():
@@ -297,13 +278,8 @@ def main():
     if args.debug:
         debugger = ReportingDebugger()
 
-    # determine cache mechanism
-    cache = {'none': caching.NoCache,
-             'dict': caching.DictCache}[args.cache]()
-
     context_options = {
-        'debugger': debugger,
-        'cache': cache
+        'debugger': debugger
     }
 
     if args.type == 'deterministic':
@@ -314,17 +290,6 @@ def main():
         context = logic.MontecarloContext(number=args.number, approximate=args.approximate, **context_options)
 
     judged.formatting.default_format_spec = args.format
-
-    for module in args.module:
-        config = {k: v for m,k,v in args.option if m==module}
-        try:
-            mod = importlib.import_module(module)
-            mod.initialize(config, kb, actions)
-        except ImportError as e:
-            if args.verbose:
-                options.error(traceback.format_exc())
-            else:
-                options.error(str(e))
 
     if args.file:
         batch(args.file, args)

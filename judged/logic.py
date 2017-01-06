@@ -9,7 +9,6 @@ import collections
 from judged import *
 from judged import worlds
 import judged.primitives
-from judged.caching import NoCache
 
 
 Answer = collections.namedtuple('Answer', ['clause', 'probability'])
@@ -21,10 +20,9 @@ class Result:
 
 
 class Context:
-    def __init__(self, knowledge, prover, cache=NoCache()):
+    def __init__(self, knowledge, prover):
         self.knowledge = knowledge
         self.prover = prover
-        self.cache = cache
         self.prob = {}
 
     def add_probability(self, partitioning, part, prob):
@@ -35,17 +33,15 @@ class Context:
     def check(self, key, part):
         raise NotImplementedError()
 
-    def ask(self, query, flush_cache=True):
-        if flush_cache:
-            self.cache.clear()
+    def ask(self, query):
         answers = self.prover.ask(query, self.check)
         return Result([Answer(a, None) for a in answers])
 
 
 class DeterministicContext(Context):
-    def __init__(self, debugger=None, cache=NoCache()):
+    def __init__(self, debugger=None):
         knowledge = Knowledge()
-        super().__init__(knowledge, Prover(knowledge, debugger=debugger), cache)
+        super().__init__(knowledge, Prover(knowledge, debugger=debugger))
         self.choices = {}
 
     def check(self, key, part):
@@ -65,9 +61,9 @@ class DeterministicContext(Context):
 
 
 class ExactContext(Context):
-    def __init__(self, debugger=None, cache=NoCache()):
+    def __init__(self, debugger=None):
         knowledge = Knowledge()
-        super().__init__(knowledge, ExactProver(knowledge, debugger=debugger), cache)
+        super().__init__(knowledge, ExactProver(knowledge, debugger=debugger))
 
     def check(self, key, part):
         # NOTE: This can be used to allow "conditioned queries" by restricting the world set
@@ -75,9 +71,9 @@ class ExactContext(Context):
 
 
 class MontecarloContext(Context):
-    def __init__(self, number=1000, approximate=0, debugger=None, cache=NoCache()):
+    def __init__(self, number=1000, approximate=0, debugger=None):
         knowledge = Knowledge()
-        super().__init__(knowledge, Prover(knowledge, debugger=debugger), cache)
+        super().__init__(knowledge, Prover(knowledge, debugger=debugger))
         self.choices = {}
         self.number = number
         self.approximate = approximate
@@ -103,10 +99,7 @@ class MontecarloContext(Context):
         except:
             raise JudgedError("Probabilities for partitioning '{}' not set".format(partitioning))
 
-    def ask(self, query, flush_cache=True):
-        if flush_cache:
-            self.cache.clear()
-
+    def ask(self, query):
         count = 0
         worlds = collections.Counter()
         answers = collections.Counter()

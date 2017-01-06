@@ -8,7 +8,7 @@ from judged import formatting
 
 
 __all__ = [
-    'JudgedError', 'ParseError', 'TokenizeError', 'CacheError',
+    'JudgedError', 'ParseError', 'TokenizeError',
     'Constant', 'Variable', 'Predicate', 'Literal', 'Clause'
 ]
 
@@ -32,12 +32,6 @@ class ParseError(JudgedError):
 class TokenizeError(ParseError):
     """
     An error during the tokenization phase of parsing a source.
-    """
-    pass
-
-class CacheError(JudgedError):
-    """
-    An error occurred during cache handling.
     """
     pass
 
