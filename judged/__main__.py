@@ -4,6 +4,7 @@ Entry point to provide REPL and file processing.
 """
 
 import judged
+from judged import context
 from judged import tokenizer
 from judged import parser
 from judged import logic
@@ -26,7 +27,7 @@ __version__ = '0.2'
 # Internal constants
 FORMAT_ENV_KEY = 'DATALOG_FORMAT'
 
-context = None
+current_context = None
 
 # FIXME: Refactor the query, assert, retract, and annotate actions to the context
 def query(clause, args):
@@ -40,7 +41,7 @@ def query(clause, args):
     if args.verbose:
         print(formatting.comment("% query ") + "{}".format(literal))
 
-    result = context.ask(literal)
+    result = current_context.ask(literal)
 
     # LATER: `sorted` can be removed for python3.6 with stable dictionaries
     for k in sorted(result.notes):
@@ -78,17 +79,17 @@ def annotate(annotation, args):
     """
     if annotation[0] == 'probability':
         if args.verbose: print(formatting.comment("% annotate ") + "p({}) = {}".format(annotation[1], annotation[2]))
-        context.add_probability(annotation[1].partitioning, annotation[1].part, annotation[2])
+        current_context.add_probability(annotation[1].partitioning, annotation[1].part, annotation[2])
     elif annotation[0] == 'distribution':
         if args.verbose:
             print(formatting.comment("% annotate {} distribution for p({})".format(annotation[2], annotation[1])))
 
         # determine all present parts
-        parts = context.knowledge.parts(annotation[1])
+        parts = current_context.knowledge.parts(annotation[1])
 
         if parts:
             for part in parts:
-                context.add_probability(annotation[1], part, 1/len(parts))
+                current_context.add_probability(annotation[1], part, 1/len(parts))
                 print(formatting.comment("%% Setting p({}={}) = {}".format(annotation[1], part, 1/len(parts))))
     else:
         raise judged.JudgedError("Unknown annotation {}".format(annotation))
@@ -97,13 +98,13 @@ def annotate(annotation, args):
 def assert_clause(clause, args):
     if args.verbose:
         print(formatting.comment("% assert ") + "{}".format(clause))
-    context.knowledge.assert_clause(clause)
+    current_context.knowledge.assert_clause(clause)
 
 
 def retract_clause(clause, args):
     if args.verbose:
         print(formatting.comment("% retract ") + "{}".format(clause))
-    context.knowledge.retract_clause(clause)
+    current_context.knowledge.retract_clause(clause)
 
 
 actions = {
@@ -146,9 +147,9 @@ def interactive_command(line, args):
     command = line.strip()[1:]
     if command == "kb":
         print(formatting.comment('% Outputting internal KB:'))
-        for pred in context.knowledge.db:
+        for pred in current_context.knowledge.db:
             print(formatting.comment('%') + " {} =>".format(pred))
-            for id, clause in context.knowledge.db[pred].items():
+            for id, clause in current_context.knowledge.db[pred].items():
                 print(formatting.comment('%')+"   {}".format(clause))
     elif command == 'help':
         print(formatting.comment('% available commands: help, kb'))
@@ -219,7 +220,7 @@ class ReportingDebugger:
 
 
 def main():
-    global context
+    global current_context
 
     # set up shared options for all prover commands
     shared_options = argparse.ArgumentParser(add_help=False)
@@ -283,11 +284,11 @@ def main():
     }
 
     if args.type == 'deterministic':
-        context = logic.DeterministicContext(**context_options)
+        current_context = context.DeterministicContext(**context_options)
     elif args.type == 'exact':
-        context = logic.ExactContext(**context_options)
+        current_context = context.ExactContext(**context_options)
     elif args.type == 'montecarlo':
-        context = logic.MontecarloContext(number=args.number, approximate=args.approximate, **context_options)
+        current_context = context.MontecarloContext(number=args.number, approximate=args.approximate, **context_options)
 
     judged.formatting.default_format_spec = args.format
 
