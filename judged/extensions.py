@@ -1,3 +1,8 @@
+"""
+Extensions module with developer-friendly interface to the extension mechanics
+available in JudgeD.
+"""
+
 import functools
 
 import judged
@@ -5,6 +10,7 @@ import judged
 
 __all__ = [
     'Extension',
+    'ExtensionError',
     'list_extensions'
 ]
 
@@ -20,16 +26,19 @@ known_extensions = {}
 
 
 def register_extension(ext):
+    """Helper function to register a new extension."""
     if ext.name in known_extensions:
         raise ExtensionError("Multiple extensions try to use the name '{}'".format(ext.name))
     known_extensions[ext.name] = ext
 
 
 def list_extensions():
+    """Returns a list of all registered extensions."""
     return list(known_extensions.values())
 
 
 class PredicateInfo:
+    """Plain object to combine information on an extension's predicate."""
     def __init__(self, name, arity, needs_context, function):
         self.predicate = judged.Predicate(name, arity)
         self.needs_context = needs_context
@@ -39,11 +48,23 @@ class PredicateInfo:
     def id(self):
         return self.predicate.id
 
-    def __repr__(self):
-        return "PredicateInfo(predicate={}, needs_context={}, function={})".format(self.predicate, self.needs_context, self.function)
-
 
 class Extension:
+    """
+    The Extension class is instantiated to create an extensions.
+
+    Once created, predicates can be registered on the extension via the use of
+    the `predicate` decorator:
+
+    >>> ext = Extension(__name__)
+    >>> @ext.predicte("name", 2)
+    ... def name(pred, a, b):
+    ...     pass
+
+    It is also possible to register one or more setup functions through the
+    `setup` decorator, and to register functions to be run before and after an
+    ask on the context with `before_ask` and `after_ask`.
+    """
     def __init__(self, name):
         self.name = name
         self.predicates = {}
@@ -53,6 +74,17 @@ class Extension:
         register_extension(self)
 
     def predicate(self, name, arity, needs_context=False):
+        """Predicate decorator to register a predicate with the extension.
+
+        The predicate decorator requires that the predicate's name and arity are
+        given, and allows an optional needs_context parameter to indicate that
+        the predicate function requires the program context when invoked.
+
+        A predicate function is given the actual predicate instance as first
+        argument, followed by the terms of the literal. If needs_context was
+        given, the current context will be givan as an additional, final
+        argument.
+        """
         # create a registration function for the given parameters
         def predicate_registerer(function):
             # create an information piece for this predicate function
@@ -95,12 +127,15 @@ class Extension:
             context.knowledge.add_primitive(predicate, generator, self.name + '.' + pred.id)
 
     def setup(self, f):
+        """Registers a function to run when the extensions is set up for use."""
         self.setup_functions.append(f)
 
     def before_ask(self, f):
+        """Registers a function to run when an ask is starting."""
         self.before_ask_functions.append(f)
 
     def after_ask(self, f):
+        """Registers a function to run when an as is finished."""
         self.after_ask_functions.append(f)
 
     def _do_before_ask(self, context):

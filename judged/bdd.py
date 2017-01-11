@@ -1,3 +1,7 @@
+"""
+Binary Decision Diagram module.
+"""
+
 from judged.interned import InternalizeMeta
 from operator import attrgetter
 
