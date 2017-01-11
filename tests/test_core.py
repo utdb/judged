@@ -247,7 +247,7 @@ def clause_shuffle():
 
 @test.core
 def clause_safe():
-    kb = Knowledge()
+    kb = Knowledge(None)
     l1 = lit(pred('y', 1), [var('X')])
     l2 = lit(pred('x', 2), [var('X'), var('Y')])
 
@@ -277,7 +277,7 @@ def clause_safe():
 
 @test.prover
 def slg_resolve():
-    kb = Knowledge()
+    kb = Knowledge(None)
     prover = Prover(kb)
 
     l1 = lit(pred('x',1), [var('X')])
@@ -303,7 +303,7 @@ def slg_resolve():
 
 @test.prover
 def slg_factor():
-    kb = Knowledge()
+    kb = Knowledge(None)
     prover = Prover(kb)
 
     x = pred('x', 1)
@@ -330,7 +330,7 @@ def slg_factor():
 
 @test.knowledge
 def kb():
-    kb = Knowledge()
+    kb = Knowledge(None)
 
     l1 = lit(pred('y', 1), [var('X')])
     l2 = lit(pred('x', 2), [var('X'), var('Y')])
@@ -338,15 +338,15 @@ def kb():
 
     c1 = clause(l1, [l2, l3])
     kb.assert_clause(c1)
-    assert kb.db
+    assert kb.rules
 
     kb.retract_clause(c1)
-    assert not kb.db
+    assert not kb.rules
 
 
 @test.prover
 def ask():
-    kb = Knowledge()
+    kb = Knowledge(None)
     prover = Prover(kb)
 
     l1 = lit(pred('y', 1), [var('X')])

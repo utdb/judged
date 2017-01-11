@@ -17,7 +17,8 @@ class Knowledge:
     """
     def __init__(self, context):
         self.context = context
-        self.db = dict()
+        self.facts = dict()
+        self.rules = dict()
         self.prim = dict()
 
         judged.primitives.register_primitives(self)
@@ -46,19 +47,29 @@ class Knowledge:
         if not self.is_safe(clause):
             raise JudgedError("Asserted clause is unsafe: '{}'".format(clause))
 
+        # select database first
+        db = self.facts if not clause.body else self.rules
+
+        # assert fact
         pred = clause.head.pred
-        db = self.db.setdefault(pred, dict())
-        db[clause.id] = clause
+        bucket = db.setdefault(pred, dict())
+        bucket[clause.id] = clause
         return clause
 
     def retract_clause(self, clause):
         """Retracts a clause."""
         pred = clause.head.pred
-        db = self.db.get(pred, None)
-        if db:
-            db.pop(clause.id, None)
-        if not db:
-            self.db.pop(pred, None)
+        # select database first
+        db = self.facts if not clause.body else self.rules
+
+        # select bucket
+        bucket = db.get(pred, None)
+        if bucket:
+            bucket.pop(clause.id, None)
+
+        # if we emptied the bucket, remove it
+        if not bucket:
+            db.pop(pred, None)
         return clause
 
     class PrimitiveInfo:
@@ -87,15 +98,17 @@ class Knowledge:
                 yield from primitive.generator(literal, self.context)
 
         # produce asserted clauses
-        if pred in self.db:
-            yield from self.db[pred].values()
+        for db in (self.facts, self.rules):
+            if pred in db:
+                yield from db[pred].values()
 
     def parts(self, partitioning):
         # NOTE: Used exclusively for worlds.exclusion_matrix and uniform distribution
         result = set()
-        for db in self.db.values():
-            for clause in db.values():
-                result.update(lbl[1] for lbl in clause.sentence.labels() if lbl[0]==partitioning)
+        for db in (self.rules, self.facts):
+            for bucket in db.values():
+                for clause in bucket.values():
+                    result.update(lbl[1] for lbl in clause.sentence.labels() if lbl[0]==partitioning)
         return result
 
 

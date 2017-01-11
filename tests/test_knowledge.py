@@ -21,7 +21,7 @@ wbottom = judged.worlds.Bottom
 
 @test.knowledge
 def primitives():
-    kb = judged.logic.Knowledge()
+    kb = judged.logic.Knowledge(None)
 
     l1 = lit(pred('f', 1), [var('X')])
     l2 = lit(pred('g', 1), [var('X')])
@@ -32,7 +32,7 @@ def primitives():
     c2 = clause(l2, [l1], [], wand(wlabel('x','2'), wlabel('y','1')))
     kb.assert_clause(c2)
 
-    assert set(kb.clauses(l1, None)) == {c1}
+    assert set(kb.clauses(l1)) == {c1}
 
     answer = set(kb.parts('x'))
     assert answer == {'1', '2'}, str(answer)

@@ -14,7 +14,7 @@ clause = judged.Clause
 
 @test.prover
 def primitives():
-    kb = Knowledge()
+    kb = Knowledge(None)
     prover = Prover(kb)
 
     def testpred(literal, prover):
@@ -25,7 +25,7 @@ def primitives():
             yield clause(lit(literal.pred, [const('bar')]))
             yield clause(lit(literal.pred, [const('baz')]))
 
-    kb.add_primitive(pred('testpred',1), testpred)
+    kb.add_primitive(pred('testpred',1), testpred, 'Description')
 
     l1 = lit(pred('y', 1), [var('X')])
     l2 = lit(pred('testpred', 1), [var('X')])
@@ -52,7 +52,7 @@ def primitives():
 
 @test.prover
 def equals():
-    kb = Knowledge()
+    kb = Knowledge(None)
     prover = Prover(kb)
 
     l1 = lit(pred('y',1), [var('X')])
