@@ -83,12 +83,16 @@ class Extension:
                 raise ExtensionError("Multiple predicates known with name '{}' (i.e., {}), please qualify with arity".format(name, ', '.join("{}".format(p.predicate) for p in candidates)))
 
     def register_predicate(self, context, full_name, alias=None):
-        pred = self._find_predicate(full_name)
-        if not pred:
-            raise ExtensionError("No predicate of the name '{}' is present in module '{}'".format(full_name, self.name))
-        predicate = pred.predicate if not alias else judged.Predicate(alias, pred.predicate.arity)
-        generator = predicate_generator(pred)
-        context.knowledge.add_primitive(predicate, generator, self.name + '.' + pred.id)
+        if full_name is None:
+            for pred in self.predicates.values():
+                context.knowledge.add_primitive(pred.predicate, predicate_generator(pred), self.name + '.' + pred.id)
+        else:
+            pred = self._find_predicate(full_name)
+            if not pred:
+                raise ExtensionError("No predicate of the name '{}' is present in module '{}'".format(full_name, self.name))
+            predicate = pred.predicate if not alias else judged.Predicate(alias, pred.predicate.arity)
+            generator = predicate_generator(pred)
+            context.knowledge.add_primitive(predicate, generator, self.name + '.' + pred.id)
 
     def setup(self, f):
         self.setup_functions.append(f)
@@ -109,7 +113,7 @@ class Extension:
 
     def _do_setup(self, context, parameters):
         for f in self.setup_functions:
-            f(context, parameters)
+            f(context, **parameters)
 
 
 def predicate_generator(info):
