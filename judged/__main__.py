@@ -10,7 +10,7 @@ from judged import parser
 from judged import logic
 from judged import formatting
 from judged import worlds
-from judged.extensions import ExtensionError
+from judged import extensions
 
 import sys
 import os
@@ -30,9 +30,11 @@ __version__ = '0.2'
 FORMAT_ENV_KEY = 'DATALOG_FORMAT'
 
 current_context = None
+args = None
+
 
 # FIXME: Refactor the query, assert, retract, and annotate actions to the context
-def query(clause, args):
+def query(clause):
     """Executes a query and presents the answers."""
     if len(clause) > 0:
         raise judged.JudgedError('Cannot query for a clause (only literals can be queried on).')
@@ -56,35 +58,75 @@ def query(clause, args):
         print()
 
 
-def annotate(annotation, args):
+def annotate(annotation):
     """
     Handles annotations in the judged source.
     """
     if annotation[0] == 'probability':
-        if args.verbose: print(formatting.comment("% annotate ") + "p({}) = {}".format(annotation[1], annotation[2]))
-        current_context.add_probability(annotation[1].partitioning, annotation[1].part, annotation[2])
+        annotate_probability(*annotation[1:])
+
     elif annotation[0] == 'distribution':
-        if args.verbose:
-            print(formatting.comment("% annotate {} distribution for p({})".format(annotation[2], annotation[1])))
+        annotate_distribution(*annotation[1:])
 
-        # determine all present parts
-        parts = current_context.knowledge.parts(annotation[1])
+    elif annotation[0] == 'use_module':
+        annotate_use_module(*annotation[1])
 
-        if parts:
-            for part in parts:
-                current_context.add_probability(annotation[1], part, 1/len(parts))
-                print(formatting.comment("%% Setting p({}={}) = {}".format(annotation[1], part, 1/len(parts))))
+    elif annotation[0] == 'from_module':
+        annotation_from_module(*annotation[1])
+
     else:
         raise judged.JudgedError("Unknown annotation {}".format(annotation))
 
 
-def assert_clause(clause, args):
+def annotate_probability(label, probability):
+    if args.verbose: print(formatting.comment("% annotate ") + "p({}) = {}".format(label, probability))
+    current_context.add_probability(label.partitioning, label.part, probability)
+
+
+def annotate_distribution(distribution, partitioning):
+    if args.verbose:
+        print(formatting.comment("% annotate {} distribution for p({})".format(distribution, partitioning)))
+
+    # determine all present parts
+    parts = current_context.knowledge.parts(partitioning)
+
+    if parts:
+        for part in parts:
+            current_context.add_probability(partitioning, part, 1/len(parts))
+            print(formatting.comment("%% Setting p({}={}) = {}".format(partitioning, part, 1/len(parts))))
+
+
+def annotate_use_module(module, config):
+    ext = extensions.known_extensions.get(module)
+    if ext is None:
+        raise extensions.ExtensionError("Module '{}' not found.".format(module))
+
+    current_context.use_extension(ext, config)
+    if args.verbose: print(formatting.comment("% using module '{}' with arguments {}".format(module, config)))
+    return ext
+
+
+def annotation_from_module(module, predicate, alias):
+    ext = current_context.extensions.get(module)
+    if not ext:
+        ext = annotate_use_module(module, {})
+    if not ext:
+        raise extensions.ExternsionError("Module '{}' not succesfully registered, no predicates can be used from it".format(module))
+    ext.register_predicate(current_context, predicate, alias)
+    if args.verbose:
+        if alias:
+            print(formatting.comment("% using predicate '{}' from module '{}', aliased as '{}'".format(predicate, module, alias)))
+        else:
+            print(formatting.comment("% using predicate '{}' from module '{}'".format(predicate, module)))
+
+
+def assert_clause(clause):
     if args.verbose:
         print(formatting.comment("% assert ") + "{}".format(clause))
     current_context.knowledge.assert_clause(clause)
 
 
-def retract_clause(clause, args):
+def retract_clause(clause):
     if args.verbose:
         print(formatting.comment("% retract ") + "{}".format(clause))
     current_context.knowledge.retract_clause(clause)
@@ -98,7 +140,7 @@ actions = {
 }
 
 
-def handle_reader(reader, args):
+def handle_reader(reader):
     """
     Processes all statements in a single reader. Errors in the handling of an
     action will be furnished with context information based on the context
@@ -106,13 +148,13 @@ def handle_reader(reader, args):
     """
     for clause, action, location in parser.parse(reader):
         try:
-            actions[action](clause, args)
+            actions[action](clause)
         except judged.JudgedError as e:
             e.context = location
             raise e
 
 
-def batch(readers, args):
+def batch(readers):
     """
     Batch process all readers in turn, taking all actions one after the other.
 
@@ -120,13 +162,13 @@ def batch(readers, args):
     """
     for reader in readers:
         try:
-            handle_reader(reader, args)
+            handle_reader(reader)
         except judged.JudgedError as e:
             print("{}{}: {}".format(reader.name, e.context, e.message))
             break
 
 
-def interactive_command(line, args):
+def interactive_command(line):
     command = line.strip()[1:]
     if command == "kb":
         print(formatting.comment('% Outputting internal KB:'))
@@ -140,7 +182,7 @@ def interactive_command(line, args):
         raise judged.JudgedError("Unknown command '{}'".format(command))
 
 
-def interactive(args):
+def interactive():
     """
     Provides a REPL for asserting and retracting clauses and querying the
     knowledge base.
@@ -159,9 +201,9 @@ def interactive(args):
             line = input('> ')
             try:
                 if line.strip().startswith('.'):
-                    interactive_command(line, args)
+                    interactive_command(line)
                 else:
-                    handle_reader(io.StringIO(line), args)
+                    handle_reader(io.StringIO(line))
             except judged.JudgedError as e:
                 print("Error: {}".format(e.message))
     except EOFError:
@@ -203,7 +245,7 @@ class ReportingDebugger:
 
 
 def main():
-    global current_context
+    global current_context, args
 
     # set up shared options for all prover commands
     shared_options = argparse.ArgumentParser(add_help=False)
@@ -282,7 +324,7 @@ def main():
                 message = traceback.format_exc()
                 print(textwrap.indent(message, '> '))
             options.exit(1)
-        except ExtensionError as e:
+        except extensions.ExtensionError as e:
             print("Error in extension: {}".format(e.message))
             options.exit(1)
 
@@ -295,11 +337,11 @@ def main():
         current_context = context.MontecarloContext(number=args.number, approximate=args.approximate, **context_options)
 
     if args.file:
-        batch(args.file, args)
+        batch(args.file)
         if args.imports:
-            interactive(args)
+            interactive()
     else:
-        interactive(args)
+        interactive()
 
 
 if __name__ == '__main__':

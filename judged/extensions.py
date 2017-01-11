@@ -2,6 +2,7 @@ import functools
 
 import judged
 
+
 __all__ = [
     'Extension',
     'list_extensions'
@@ -64,6 +65,32 @@ class Extension:
             return function
         return predicate_registerer
 
+    def _find_predicate(self, full_name):
+        name, sep, arity = full_name.rpartition('/')
+        if name and arity:
+            identifier = full_name
+            return self.predicates.get(identifier)
+        else:
+            name = name or arity
+            candidates = []
+            for p in self.predicates.values():
+                if p.name == name:
+                    candidates.append(p)
+            if len(candidates) == 0:
+                return None
+            elif len(candidates) == 1:
+                return candidates[0]
+            else:
+                raise ExtensionError("Multiple predicates known with name '{}' (i.e., {}), please qualify with arity".format(name, ', '.join(p.id for p in candidates)))
+
+    def register_predicate(self, context, full_name, alias=None):
+        pred = self._find_predicate(full_name)
+        if not pred:
+            raise ExtensionError("No predicate of the name '{}' is present in module '{}'".format(full_name, self.name))
+        predicate = judged.Predicate(alias or pred.name, pred.arity)
+        generator = predicate_generator(pred)
+        context.knowledge.add_primitive(predicate, generator)
+
     def setup(self, f):
         self.setup_functions.append(f)
 
@@ -84,3 +111,18 @@ class Extension:
     def _do_setup(self, context, parameters):
         for f in self.setup_functions:
             f(context, parameters)
+
+
+def predicate_generator(info):
+    if info.needs_context:
+        @functools.wraps(info.function)
+        def predicate_proxy(literal, context):
+            context_info = {
+                'context': context
+            }
+            yield from info.function(literal.pred, *literal.terms, **context_info)
+    else:
+        @functools.wraps(info.function)
+        def predicate_proxy(literal, context):
+            yield from info.function(literal.pred, *literal.terms)
+    return predicate_proxy

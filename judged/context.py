@@ -4,6 +4,7 @@ Execution context for a JudgeD program.
 
 import random
 import collections
+import contextlib
 
 from judged.logic import Knowledge, Prover,  ExactProver
 
@@ -20,6 +21,7 @@ class Context:
     def __init__(self, knowledge, prover):
         self.knowledge = knowledge
         self.prover = prover
+        self.extensions = {}
         self.prob = {}
 
     def add_probability(self, partitioning, part, prob):
@@ -30,14 +32,39 @@ class Context:
     def check(self, key, part):
         raise NotImplementedError()
 
+    @contextlib.contextmanager
+    def _ask_extension(self, ext):
+        # fire the extension's before_asks
+        ext._do_before_ask(self)
+        # yield to the body of the with block
+        yield
+        # fire the extension's after_asks
+        ext._do_after_ask(self)
+
     def ask(self, query):
+        # Make an ExitStack to dynamically add extension ask contexts for each
+        # extension we have
+        with contextlib.ExitStack() as ext_stack:
+            for ext in self.extensions.values():
+                # create and register extension ask context helper
+                ext_stack.enter_context(self._ask_extension(ext))
+            # with all extension ask contexts ready, fire the real ask
+            return self._ask(query)
+
+    def _ask(self, query):
         answers = self.prover.ask(query, self.check)
         return Result([Answer(a, None) for a in answers])
+
+    def use_extension(self, extension, config):
+        # fire the extensions do_setups
+        extension._do_setup(self, config)
+        # if none of the above failed, we add the extension
+        self.extensions[extension.name] = extension
 
 
 class DeterministicContext(Context):
     def __init__(self, debugger=None):
-        knowledge = Knowledge()
+        knowledge = Knowledge(self)
         super().__init__(knowledge, Prover(knowledge, debugger=debugger))
         self.choices = {}
 
@@ -59,7 +86,7 @@ class DeterministicContext(Context):
 
 class ExactContext(Context):
     def __init__(self, debugger=None):
-        knowledge = Knowledge()
+        knowledge = Knowledge(self)
         super().__init__(knowledge, ExactProver(knowledge, debugger=debugger))
 
     def check(self, key, part):
@@ -69,7 +96,7 @@ class ExactContext(Context):
 
 class MontecarloContext(Context):
     def __init__(self, number=1000, approximate=0, debugger=None):
-        knowledge = Knowledge()
+        knowledge = Knowledge(self)
         super().__init__(knowledge, Prover(knowledge, debugger=debugger))
         self.choices = {}
         self.number = number
@@ -96,7 +123,10 @@ class MontecarloContext(Context):
         except:
             raise JudgedError("Probabilities for partitioning '{}' not set".format(partitioning))
 
-    def ask(self, query):
+    def _ask(self, query):
+        for ext in self.extensions:
+            ext._do_before_ask(self)
+
         count = 0
         worlds = collections.Counter()
         answers = collections.Counter()
@@ -132,4 +162,9 @@ class MontecarloContext(Context):
                 if error() <= self.approximate:
                     break
 
-        return Result([Answer(a, p(c)) for a, c in answers.items()], iterations=count, error=error())
+        result = Result([Answer(a, p(c)) for a, c in answers.items()], iterations=count, error=error())
+
+        for ext in self.extensions:
+            ext._do_after_ask(self)
+
+        return result

@@ -15,7 +15,8 @@ class Knowledge:
     The knowledge base keeps track of the asserted clauses and the primitive
     predicates. It starts out with only the built-in equals predicate.
     """
-    def __init__(self):
+    def __init__(self, context):
+        self.context = context
         self.db = dict()
         self.prim = dict()
 
@@ -64,19 +65,19 @@ class Knowledge:
         """Creates a primitive predicate by coupling it to a generator."""
         self.prim[predicate] = gen
 
-    def clauses(self, literal, prover):
+    def clauses(self, literal):
         """
         A generator of all clauses that have the predicate as head. Clauses are
         produced regardless of the whether the predicate is a primitive or not.
 
-        The prover is given to provide the state information to native
+        The context is given to provide the state information to native
         predicates.
         """
         pred = literal.pred
 
         # produce primitive clauses
         if pred in self.prim:
-            yield from self.prim[pred](literal, prover)
+            yield from self.prim[pred](literal, self.context)
 
         # produce asserted clauses
         if pred in self.db:
@@ -226,7 +227,7 @@ class Prover:
         [Chen et al., Figure 14, p. 182]
         """
         if self.debugger: self.debugger.subgoal(literal)
-        for clause in self.kb.clauses(literal, self):
+        for clause in self.kb.clauses(literal):
             if not self.allows(clause.sentence):
                 continue
             resolvent = self.slg_resolve(Clause(literal, [literal]), literal, clause)
