@@ -53,25 +53,6 @@ def query(clause, args):
             print(formatting.comment(" % p = {}".format(a.probability)), end='')
         print()
 
-    # if args.json:
-    #     result = dict()
-    #     result['iterations'] = count
-    #     result['root-mean-square-error'] = error()
-    #     result['answers'] = list()
-    #     for a, c in sorted(answers.items(), key=lambda t: p(t[1])):
-    #         result['answers'].append({
-    #             'predicate': str(a.pred.name),
-    #             'terms': [str(t) for t in a.terms],
-    #             'probability': p(c)
-    #         })
-    #     json.dump(result, sys.stdout)
-    #     print()
-    # else:
-    #     print(formatting.comment("% iterations: {}".format(count)))
-    #     print(formatting.comment("% root-mean-square error: {}".format(error())))
-    #     for a, c in sorted(answers.items(), key=lambda t: p(t[1])):
-    #         print("{}.".format(a) + formatting.comment("  % p = {}".format(p(c))))
-
 
 def annotate(annotation, args):
     """
