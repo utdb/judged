@@ -63,7 +63,8 @@ class Knowledge:
 
     def add_primitive(self, predicate, gen):
         """Creates a primitive predicate by coupling it to a generator."""
-        self.prim[predicate] = gen
+        self.prim.setdefault(predicate, [])
+        self.prim[predicate].append(gen)
 
     def clauses(self, literal):
         """
@@ -77,7 +78,8 @@ class Knowledge:
 
         # produce primitive clauses
         if pred in self.prim:
-            yield from self.prim[pred](literal, self.context)
+            for gen in self.prim[pred]:
+                yield from gen(literal, self.context)
 
         # produce asserted clauses
         if pred in self.db:
