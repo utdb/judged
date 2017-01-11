@@ -5,7 +5,7 @@ from tests.lawful import test, run_tests
 import judged
 from judged import tokenizer
 from judged import parser
-from judged import logic
+from judged import context
 
 import io
 from pathlib import Path
@@ -73,10 +73,10 @@ def make_suite(path, root, context_type):
 
 
 for case in Path('tests/cases/deterministic').glob('*.dl'):
-    make_suite(case, Path('tests/cases/deterministic'), logic.DeterministicContext)
+    make_suite(case, Path('tests/cases/deterministic'), context.DeterministicContext)
 
 for case in Path('tests/cases/exact').glob('*.dl'):
-    make_suite(case, Path('tests/cases/exact'), logic.ExactContext)
+    make_suite(case, Path('tests/cases/exact'), context.ExactContext)
 
 for case in Path('tests/cases/montecarlo').glob('*.dl'):
-    make_suite(case, Path('tests/cases/montecarlo'), logic.MontecarloContext)
+    make_suite(case, Path('tests/cases/montecarlo'), context.MontecarloContext)

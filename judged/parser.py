@@ -49,6 +49,15 @@ class Tokens:
         return self.next(lambda t: t[0] == token_type,
                     "Expected a token of type {}{}.".format(token_type, fmessage))
 
+    def expect_keyword(self, spelling, message=''):
+        """
+        Returns the next token if it is a a NAME and has the given spelling. If
+        it does not match this specification, an error is raised.
+        """
+        fmessage = (' ' + message) if message else ''
+        return self.next(lambda t: t[0] == NAME and t[1] == spelling,
+                    "Expected the keyword '{}'{}".format(spelling, fmessage))
+
     def test(self, test=lambda t: False):
         """Checks if the next token succeeds the test."""
         t = self._next()
@@ -64,7 +73,7 @@ class Tokens:
         """
         Consumes the next token if it matches the token type, if the test fails
         the token remains. The result of the test is returned.
-        """ 
+        """
         result = self.test_for(token_type)
         if result:
             self.expect(token_type)
@@ -309,6 +318,7 @@ def parse_probability_var(ts):
     ts.expect(RPAREN)
     return variable
 
+
 def parse_annotation(ts):
     """
     Parse an annotation.
@@ -318,10 +328,61 @@ def parse_annotation(ts):
         ts.expect(EQUALS,'to continue probability assignment')
         prob_t = ts.expect(NUMBER, 'to complete probability assignment.')
         return ('probability', label, prob_t[1])
+
     elif ts.test(lambda t: t[0] == NAME and t[1] == 'uniform'):
         ts.expect(NAME)
         prob_t = parse_probability_var(ts)
         return ('distribution', prob_t[1], 'uniform')
+
+    elif ts.test(lambda t: t[0] == NAME and t[1] == 'use'):
+        use_annotation = parse_use_annotation(ts)
+        return ('use_module', use_annotation)
+
+    elif ts.test(lambda t: t[0] == NAME and t[1] == 'from'):
+        return ('from_module', parse_from_annotation(ts))
+
     else:
         t = ts.peek()
-        raise ParseError('Expected explicit probability assignment or distribution assignment.', t[2] if t is not None else None)
+        raise ParseError('Expected explicit probability assignment, distribution assignment, use statement, or from statement.', t[2] if t is not None else None)
+
+
+def parse_use_annotation(ts):
+    """
+    Parse a `use "name"` or `use "name" with key="value", key="value"`.
+    """
+    ts.consume(NAME)
+    module_name = ts.expect(STRING, 'to indicate which module to use')[1]
+    module_config = {}
+
+    if ts.test(lambda t: t[0] == NAME and t[1] == 'with'):
+        ts.expect(NAME)
+        expects_config = True
+        while expects_config:
+            key = ts.expect(NAME, 'as the configuration key name')[1]
+            ts.expect(EQUALS, 'to separate configuration key and value')
+            value = ts.expect(STRING, 'as the value for the configuration key')[1]
+            module_config[key] = value
+            expects_config = ts.consume(COMMA)
+    return module_name, module_config
+
+
+def parse_from_annotation(ts):
+    """
+    Parse a `from "name" use name` and variants.
+    """
+    ts.consume(NAME)
+    module_name = ts.expect(STRING, 'to indicate from which module to use')[1]
+    if ts.test(lambda t: t[0] == NAME and t[1] =='use'):
+        ts.expect(NAME, 'the keyword \'use\'')
+        predicate_name = ts.expect(NAME, 'as the predicate name to use, or the indicator \'all\' to use all predicates')[1]
+        alias_name = None
+        if predicate_name == 'all':
+            return (module_name, None, None)
+        else:
+            if ts.test(lambda t: t[0] == NAME and t[1] == 'as'):
+                ts.expect(NAME, 'to separate used predicate and alias')
+                alias_name = ts.expect(NAME, 'to give the alias under which the predicate should be used')[1]
+            return (module_name, predicate_name, alias_name)
+    else:
+        t = ts.peek()
+        raise ParseError('Expected keyword \'use\' to indicate which predicates to use from the module.', t[2] if t is not None else None)

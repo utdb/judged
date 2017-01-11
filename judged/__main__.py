@@ -10,12 +10,14 @@ from judged import parser
 from judged import logic
 from judged import formatting
 from judged import worlds
+from judged.extensions import ExtensionError
 
 import sys
 import os
 import argparse
 import importlib
 import traceback
+import textwrap
 
 
 # Public constants
@@ -213,6 +215,8 @@ def main():
                          help='Increases verbosity. Outputs each imported statement before doing it.')
     shared_options.add_argument('-d', '--debug', default=False, action='store_true',
                          help='Enables debugging output.')
+    shared_options.add_argument('-e', '--extension', action='append', default=[], dest='extensions',
+                         help='Names of python modules to import for extension loading.')
 
     format_default = os.environ.get(FORMAT_ENV_KEY, 'color')
     if not sys.stdout.isatty():
@@ -255,6 +259,8 @@ def main():
         options.print_help()
         options.exit()
 
+    judged.formatting.default_format_spec = args.format
+
     # determine debugger
     debugger = None
     if args.debug:
@@ -264,14 +270,29 @@ def main():
         'debugger': debugger
     }
 
+    # load extension modules
+    for extension in args.extensions:
+        if args.verbose:
+            print(formatting.comment("% loading extension module '{}'".format(extension)))
+        try:
+            ext = importlib.import_module(extension)
+        except ImportError as e:
+            print("Error: Could not load the extension module '{}', is the module loadable as a python module?".format(extension))
+            if args.verbose:
+                message = traceback.format_exc()
+                print(textwrap.indent(message, '> '))
+            options.exit(1)
+        except ExtensionError as e:
+            print("Error in extension: {}".format(e.message))
+            options.exit(1)
+
+    # construct context
     if args.type == 'deterministic':
         current_context = context.DeterministicContext(**context_options)
     elif args.type == 'exact':
         current_context = context.ExactContext(**context_options)
     elif args.type == 'montecarlo':
         current_context = context.MontecarloContext(number=args.number, approximate=args.approximate, **context_options)
-
-    judged.formatting.default_format_spec = args.format
 
     if args.file:
         batch(args.file, args)
