@@ -31,17 +31,16 @@ def list_extensions():
 
 class PredicateInfo:
     def __init__(self, name, arity, needs_context, function):
-        self.name = name
-        self.arity = arity
+        self.predicate = judged.Predicate(name, arity)
         self.needs_context = needs_context
         self.function = function
 
     @property
     def id(self):
-        return "{}/{}".format(self.name, self.arity)
+        return self.predicate.id
 
     def __repr__(self):
-        return "PredicateInfo(name={}, arity={}, needs_context={}, function={})".format(self.name, self.arity, self.needs_context, self.function)
+        return "PredicateInfo(predicate={}, needs_context={}, function={})".format(self.predicate, self.needs_context, self.function)
 
 
 class Extension:
@@ -74,22 +73,22 @@ class Extension:
             name = name or arity
             candidates = []
             for p in self.predicates.values():
-                if p.name == name:
+                if p.predicate.name == name:
                     candidates.append(p)
             if len(candidates) == 0:
                 return None
             elif len(candidates) == 1:
                 return candidates[0]
             else:
-                raise ExtensionError("Multiple predicates known with name '{}' (i.e., {}), please qualify with arity".format(name, ', '.join(p.id for p in candidates)))
+                raise ExtensionError("Multiple predicates known with name '{}' (i.e., {}), please qualify with arity".format(name, ', '.join("{}".format(p.predicate) for p in candidates)))
 
     def register_predicate(self, context, full_name, alias=None):
         pred = self._find_predicate(full_name)
         if not pred:
             raise ExtensionError("No predicate of the name '{}' is present in module '{}'".format(full_name, self.name))
-        predicate = judged.Predicate(alias or pred.name, pred.arity)
+        predicate = pred.predicate if not alias else judged.Predicate(alias, pred.predicate.arity)
         generator = predicate_generator(pred)
-        context.knowledge.add_primitive(predicate, generator)
+        context.knowledge.add_primitive(predicate, generator, self.name + '.' + pred.id)
 
     def setup(self, f):
         self.setup_functions.append(f)

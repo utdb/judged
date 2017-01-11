@@ -26,4 +26,4 @@ def equals_predicate(literal, prover):
 
 
 def register_primitives(kb):
-    kb.add_primitive(EQUALS_PREDICATE, equals_predicate)
+    kb.add_primitive(EQUALS_PREDICATE, equals_predicate, "judged.primitives.equals_predicate/2")

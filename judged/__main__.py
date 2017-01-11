@@ -24,7 +24,7 @@ import collections
 # Public constants
 NAME  = 'JudgeD'
 FLUFF = '^_^'
-__version__ = '0.2'
+__version__ = '0.9.dev0'
 
 
 # Internal constants
@@ -209,30 +209,52 @@ def ic(command, description=''):
     return registerer
 
 def interactive_command(line):
-    command = line.strip()[1:]
+    command, *arguments = line[1:].split()
     cmd = interactive_commands.get(command)
     if cmd:
-        cmd.function(line[len(command)].strip())
+        cmd.function(arguments)
     else:
         raise judged.JudgedError("Unknown interactive command '{}', type .help to get available commands".format(command))
 
 
 @ic('kb', 'Outputs the internal knowledge base')
-def ic_kb(line):
+def ic_kb(arguments):
     print(formatting.comment('% Outputting internal KB:'))
-    for pred in current_context.knowledge.db:
+    all_preds = set(current_context.knowledge.db.keys()) | set(current_context.knowledge.prim.keys())
+    for pred in all_preds:
         print(formatting.comment('%') + " {} =>".format(pred))
-        for id, clause in current_context.knowledge.db[pred].items():
-            print(formatting.comment('%')+"   {}".format(clause))
+        asserted = current_context.knowledge.db.get(pred)
+        if asserted:
+            for id, clause in asserted.items():
+                print(formatting.comment('%')+"   {}".format(clause))
+        primitive = current_context.knowledge.prim.get(pred)
+        if primitive:
+            for generator in primitive:
+                print(formatting.comment('%')+"   <primitive> (bound to {})".format(generator.description))
 
 
 @ic('help', 'Displays all available commands and their description')
-def ic_help(line):
+def ic_help(arguments):
     print(formatting.comment('% Available commands:'))
     for cmd in interactive_commands.values():
         print(formatting.comment("% .{}: {}".format(cmd.command, cmd.description)))
 
 
+@ic('ext', 'Displays a list of all available extensions, or display list of all predicates in an extension')
+def ic_extensions(arguments):
+    if not arguments:
+        print(formatting.comment('% Available extensions:'))
+        for ext in extensions.list_extensions():
+            print(formatting.comment("% {}".format(ext.name)))
+    else:
+        for ext in extensions.list_extensions():
+            if ext.name == arguments[0]:
+                break
+        else:
+            raise judged.JudgedError("Unknown extensions '{}'".format(arguments[0]))
+        print(formatting.comment("% Available predicates in {}:".format(arguments[0])))
+        for pred in ext.predicates.values():
+            print(formatting.comment("%")+" {}".format(pred.predicate))
 
 
 
