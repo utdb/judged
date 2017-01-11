@@ -18,6 +18,7 @@ import argparse
 import importlib
 import traceback
 import textwrap
+import collections
 
 
 # Public constants
@@ -168,20 +169,6 @@ def batch(readers):
             break
 
 
-def interactive_command(line):
-    command = line.strip()[1:]
-    if command == "kb":
-        print(formatting.comment('% Outputting internal KB:'))
-        for pred in current_context.knowledge.db:
-            print(formatting.comment('%') + " {} =>".format(pred))
-            for id, clause in current_context.knowledge.db[pred].items():
-                print(formatting.comment('%')+"   {}".format(clause))
-    elif command == 'help':
-        print(formatting.comment('% available commands: help, kb'))
-    else:
-        raise judged.JudgedError("Unknown command '{}'".format(command))
-
-
 def interactive():
     """
     Provides a REPL for asserting and retracting clauses and querying the
@@ -209,6 +196,44 @@ def interactive():
     except EOFError:
         print()
         return
+
+
+interactive_commands = {}
+
+InteractiveCommand = collections.namedtuple('InteractiveCommand', ['command', 'function', 'description'])
+
+def ic(command, description=''):
+    def registerer(f):
+        interactive_commands[command] = InteractiveCommand(command, f, description)
+        return f
+    return registerer
+
+def interactive_command(line):
+    command = line.strip()[1:]
+    cmd = interactive_commands.get(command)
+    if cmd:
+        cmd.function(line[len(command)].strip())
+    else:
+        raise judged.JudgedError("Unknown interactive command '{}', type .help to get available commands".format(command))
+
+
+@ic('kb', 'Outputs the internal knowledge base')
+def ic_kb(line):
+    print(formatting.comment('% Outputting internal KB:'))
+    for pred in current_context.knowledge.db:
+        print(formatting.comment('%') + " {} =>".format(pred))
+        for id, clause in current_context.knowledge.db[pred].items():
+            print(formatting.comment('%')+"   {}".format(clause))
+
+
+@ic('help', 'Displays all available commands and their description')
+def ic_help(line):
+    print(formatting.comment('% Available commands:'))
+    for cmd in interactive_commands.values():
+        print(formatting.comment("% .{}: {}".format(cmd.command, cmd.description)))
+
+
+
 
 
 class ReportingDebugger:
