@@ -17,6 +17,16 @@ Quick Start
      with the interactive interpreter: `judged`
 
 
+Development Start
+-----------------
+
+  1. `git clone` this repository
+  2. Set up a virtualenv with python3.4+
+  3. Get to work on the source, using `./judged.py` as entry point
+  4. Run tests with `python -m tests`
+  5. Package source release with `python setup.py sdist`
+
+
 Variants
 --------
 
