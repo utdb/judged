@@ -159,11 +159,11 @@ def make_term(token):
 
     # handle constants
     if kind == NAME:
-        return judged.Constant(spelling)
+        return judged.Constant.symbol(spelling)
     elif kind == STRING:
-        return judged.Constant(str(spelling), kind='string', data=spelling)
+        return judged.Constant.string(spelling)
     elif kind == NUMBER:
-        return judged.Constant(str(spelling), kind='number', data=spelling)
+        return judged.Constant.number(spelling)
 
 
 def parse_literal(ts):

@@ -16,9 +16,9 @@ ancestor(A, B) :-
     parent(A, C),
     D = C,      % Unification required
     ancestor(D, B).
-parent(john, douglas).
-parent(bob, john).
-parent(ebbon, bob).
+parent("john", douglas).
+parent(bob, "john").
+parent(1337, bob).
 ancestor(A, B)?
 """
 
@@ -64,7 +64,7 @@ ancestor(A, B)?
         (PERIOD, ".", lc(7)),
         (NAME, "parent", lc(8)),
         (LPAREN, "(", lc(8)),
-        (NAME, "john", lc(8)),
+        (STRING, "john", lc(8)),
         (COMMA, ",", lc(8)),
         (NAME, "douglas", lc(8)),
         (RPAREN, ")", lc(8)),
@@ -73,12 +73,12 @@ ancestor(A, B)?
         (LPAREN, "(", lc(9)),
         (NAME, "bob", lc(9)),
         (COMMA, ",", lc(9)),
-        (NAME, "john", lc(9)),
+        (STRING, "john", lc(9)),
         (RPAREN, ")", lc(9)),
         (PERIOD, ".", lc(9)),
         (NAME, "parent", lc(10)),
         (LPAREN, "(", lc(10)),
-        (NAME, "ebbon", lc(10)),
+        (NUMBER, 1337, lc(10)),
         (COMMA, ",", lc(10)),
         (NAME, "bob", lc(10)),
         (RPAREN, ")", lc(10)),

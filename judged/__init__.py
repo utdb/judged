@@ -93,6 +93,18 @@ class Constant(metaclass=interned.InternalizeMeta, key=constant_key):
         """Let the variable sort out unification with a constant."""
         return var.unify_const(self, env)
 
+    @classmethod
+    def symbol(cls, spelling):
+        return cls(spelling)
+
+    @classmethod
+    def string(cls, value):
+        return cls(str(value), kind='string', data=value)
+
+    @classmethod
+    def number(cls, value):
+        return cls(str(value), kind='number', data=value)
+
 
 class Variable(metaclass=interned.InternalizeMeta):
     """
