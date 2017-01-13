@@ -43,7 +43,7 @@ def query(clause):
         raise judged.JudgedError('Cannot perform a query with a descriptive sentence.')
 
     literal = clause.head
-    if args.verbose:
+    if args.verbose or args.verbose_questions:
         print(formatting.comment("% query ") + "{}".format(literal))
 
     result = current_context.ask(literal)
@@ -300,8 +300,10 @@ def main():
                          help='Input files to process in batch.')
     shared_options.add_argument('-i', '--import', default=False, action='store_true', dest='imports',
                          help='Imports the judged files before going to interactive mode.')
-    shared_options.add_argument('-v', '--verbose', default=False, action='store_true',
+    shared_options.add_argument('-V', '--verbose', default=False, action='store_true',
                          help='Increases verbosity. Outputs each imported statement before doing it.')
+    shared_options.add_argument('-v', '--verbose-questions', default=False, action='store_true',
+                         help='Increases verbosity for all questions. Outputs each question before answering.')
     shared_options.add_argument('-d', '--debug', default=False, action='store_true',
                          help='Enables debugging output.')
     shared_options.add_argument('-e', '--extension', action='append', default=[], dest='extensions',
