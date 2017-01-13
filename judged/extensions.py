@@ -73,6 +73,9 @@ class Extension:
         self.after_ask_functions = []
         register_extension(self)
 
+    def __str__(self):
+        return "<judged.extensions.Extension '{}'>".format(self.name)
+
     def predicate(self, name, arity, needs_context=False):
         """Predicate decorator to register a predicate with the extension.
 

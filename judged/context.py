@@ -36,10 +36,15 @@ class Context:
     def _ask_extension(self, ext):
         # fire the extension's before_asks
         ext._do_before_ask(self)
-        # yield to the body of the with block
-        yield
-        # fire the extension's after_asks
-        ext._do_after_ask(self)
+        try:
+            # yield to the body of the with block
+            yield
+        except:
+            # always reraise anything we catch
+            raise
+        finally:
+            # fire the extension's after_asks, regardless of errors
+            ext._do_after_ask(self)
 
     def ask(self, query):
         # Make an ExitStack to dynamically add extension ask contexts for each
