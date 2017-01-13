@@ -18,6 +18,8 @@ class Result:
 
 
 class Context:
+    tagline = 'abstract context'
+
     def __init__(self, knowledge, prover):
         self.knowledge = knowledge
         self.prover = prover
@@ -68,6 +70,8 @@ class Context:
 
 
 class DeterministicContext(Context):
+    tagline = 'deterministic variant'
+
     def __init__(self, debugger=None):
         knowledge = Knowledge(self)
         super().__init__(knowledge, Prover(knowledge, debugger=debugger))
@@ -90,6 +94,8 @@ class DeterministicContext(Context):
 
 
 class ExactContext(Context):
+    tagline = 'exact variant'
+
     def __init__(self, debugger=None):
         knowledge = Knowledge(self)
         super().__init__(knowledge, ExactProver(knowledge, debugger=debugger))
@@ -100,6 +106,8 @@ class ExactContext(Context):
 
 
 class MontecarloContext(Context):
+    tagline = 'monte carlo variant'
+
     def __init__(self, number=1000, approximate=0, debugger=None):
         knowledge = Knowledge(self)
         super().__init__(knowledge, Prover(knowledge, debugger=debugger))

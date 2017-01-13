@@ -23,8 +23,7 @@ import collections
 
 # Public constants
 NAME  = 'JudgeD'
-FLUFF = '^_^'
-__version__ = '0.9.dev1'
+VERSION = '0.9.dev2'
 
 
 # Internal constants
@@ -182,7 +181,8 @@ def interactive():
         pass
 
     try:
-        print("{} {} ({})".format(NAME + ", {} variant".format(args.type), __version__, FLUFF))
+        print("{name}, {variant} ({version})".format(name=NAME, version=VERSION, variant=current_context.tagline))
+        print('Type ".help" for interactive commands.')
         print()
         while True:
             line = input('> ')

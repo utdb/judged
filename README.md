@@ -93,16 +93,17 @@ Interpreter parameter documentation can be produced by invoking `datalog.py`
 with the `--help` flag. The subcommands each have their own help documentation.
 For ease of use, some useful combinations are given here.
 
-`datalog.py exact --help`: Gets the full list of options for the `exact` variant
-of JudgeD.
+  - `datalog.py exact --help`: Gets the full list of options for the `exact`
+    variant of JudgeD.
+  - `datalog.py deterministic -V`: runs an interactive deterministic datalog
+     prompt in verbose mode, showing each statement is it is processed.
+  - `datalog.py deterministic -f color -v -i examples/power.dl`: `-f color`
+    Explicitly declares colored output formatting, `-v` runs in verbose mode to show
+    each statement as it is processed, and `-i` switches to interactive mode after
+    the given files are processed.
+  - `datalog.py deterministic -d examples/ancestor.dl`: Runs the ancestor.dl
+    example file with a debugging trace of the query answering process.
 
-`datalog.py deterministic -V`: runs an interactive deterministic datalog prompt
-in verbose mode, showing each statement is it is processed.
-
-`datalog.py deterministic -f color -v -i examples/power.dl`: `-f color`
-Explicitly declares colored output formatting, `-v` runs in verbose mode to show
-each statement as it is processed, and `-i` switches to interactive mode after
-the given files are processed.
-
-`datalog.py deterministic -d examples/ancestor.dl`: Runs the ancestor.dl example
-file with a debugging trace of the query answering process.
+Furthermore, in interactive mode the interpreter offers several introspective
+commands. More information on these can be obtained through type `.help` in the
+interpreter.
