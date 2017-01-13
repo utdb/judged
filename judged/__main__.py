@@ -220,13 +220,14 @@ def interactive_command(line):
 @ic('kb', 'Outputs the internal knowledge base')
 def ic_kb(arguments):
     print(formatting.comment('% Outputting internal KB:'))
-    all_preds = set(current_context.knowledge.db.keys()) | set(current_context.knowledge.prim.keys())
+    all_preds = set(current_context.knowledge.facts.keys()) | set(current_context.knowledge.rules.keys()) | set(current_context.knowledge.prim.keys())
     for pred in all_preds:
         print(formatting.comment('%') + " {} =>".format(pred))
-        asserted = current_context.knowledge.db.get(pred)
-        if asserted:
-            for id, clause in asserted.items():
-                print(formatting.comment('%')+"   {}".format(clause))
+        for db in (current_context.knowledge.facts, current_context.knowledge.rules):
+            asserted = db.get(pred)
+            if asserted:
+                for id, clause in asserted.items():
+                    print(formatting.comment('%')+"   {}".format(clause))
         primitive = current_context.knowledge.prim.get(pred)
         if primitive:
             for generator in primitive:
