@@ -95,14 +95,17 @@ class Constant(metaclass=interned.InternalizeMeta, key=constant_key):
 
     @classmethod
     def symbol(cls, spelling):
+        """Create a symbol constant."""
         return cls(spelling)
 
     @classmethod
     def string(cls, value):
+        """Create a string constant."""
         return cls(str(value), kind='string', data=value)
 
     @classmethod
     def number(cls, value):
+        """Create a number constant."""
         return cls(str(value), kind='number', data=value)
 
 

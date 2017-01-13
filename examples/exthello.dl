@@ -1,0 +1,12 @@
+% Initialise the module with a parameter
+@use "examples.exthello" with thing="world".
+
+% start using all predicates
+@from "examples.exthello" use all.
+
+% alias the complex/1 predicate as example_predicate, now we have two
+% names for the predicate
+@from "examples.exthello" use complex as example_predicate.
+
+% query the module's say/2 predicate
+say(A, B)?
