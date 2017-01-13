@@ -24,7 +24,7 @@ import collections
 # Public constants
 NAME  = 'JudgeD'
 FLUFF = '^_^'
-__version__ = '0.9.dev0'
+__version__ = '0.9.dev1'
 
 
 # Internal constants
