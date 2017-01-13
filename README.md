@@ -11,8 +11,9 @@ JudgeD requires [Python 3.4](https://www.python.org/) or newer.
 Quick Start
 -----------
 
-  1. `pip install https://github.com/utdb/judged/releases/download/v0.9.dev0/judged-0.9.dev0.tar.gz` the downloaded file
-  2. Have a look at the examples in `examples/` in this repository, or play
+  1. Find the [release](https://github.com/utdb/judged/releases) you are interested in (a good bet is the [latest realease](https://github.com/utdb/judged/releases/latest))
+  2. `pip install <release tar.gz>` to install
+  3. Have a look at the examples in `examples/` in this repository, or play
      with the interactive interpreter: `judged`
 
 
