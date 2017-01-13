@@ -11,9 +11,10 @@ JudgeD requires [Python 3.4](https://www.python.org/) or newer.
 Quick Start
 -----------
 
-  1. Clone this repository
-  2. Have a look at the examples in `examples/`, or play with the interactive
-     interpreter: `./judged.py`
+  1. Download [release binary](https://github.com/utdb/judged/releases)
+  2. `pip install` the downloaded file
+  3. Have a look at the examples in `examples/` in this repository, or play
+     with the interactive interpreter: `judged`
 
 
 Variants
@@ -22,10 +23,10 @@ Variants
 The JudgeD solver currently has three variants: `deterministic`, `exact` and
 `montecarlo`.
 
-The `deterministic` branch is the deterministic basis of JudgeD. It is an SLDNF
+The `deterministic` variant is the deterministic basis of JudgeD. It is an SLDNF
 based implementation of Datalog with negation in Python.
 
-The `exact` and `montecarlo` branches are two proof-of-concept implementations
+The `exact` and `montecarlo` variants are two proof-of-concept implementations
 of probabilistic datalog. The `exact` version determines the exact sentence
 describing the validity of the answers, it does net calculate probabilities, nor
 does it handle negation. The `montecarlo` version calculate answer probabilities
@@ -85,7 +86,7 @@ For ease of use, some useful combinations are given here.
 `datalog.py exact --help`: Gets the full list of options for the `exact` variant
 of JudgeD.
 
-`datalog.py deterministic -v`: runs an interactive deterministic datalog prompt
+`datalog.py deterministic -V`: runs an interactive deterministic datalog prompt
 in verbose mode, showing each statement is it is processed.
 
 `datalog.py deterministic -f color -v -i examples/power.dl`: `-f color`
@@ -95,8 +96,3 @@ the given files are processed.
 
 `datalog.py deterministic -d examples/ancestor.dl`: Runs the ancestor.dl example
 file with a debugging trace of the query answering process.
-
-`datalog.py deterministic -m examples.demosql examples/demosql.dl`: Loads the
-external data module `examples.demosql` (note that this is loaded according to
-Pyhton's module path), and runs the example file that uses the externally
-defined `triple` predicate.
