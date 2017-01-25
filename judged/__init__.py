@@ -419,6 +419,7 @@ class Clause:
         s = lambda t: t.subst(env)
         body = list(map(s, self.body))
         delayed = list(map(s, self.delayed))
+        # TODO: sentence substitution
         return Clause(self.head.subst(env), body, delayed, self.sentence)
 
     def rename(self):

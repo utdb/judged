@@ -209,6 +209,7 @@ def parse_literal(ts):
 
 
 def parse_descriptive_label(ts):
+    # TODO: Parse partitioning and part as IDENTIFIER or IDENTIFIER `(` IDENTIFIER [`,` IDENTIFIER]* `)`
     partitioning = ts.next(IDENTIFIER, 'Expected an identifier or string as partitioning of label in descriptive sentence.')
 
     if partitioning[1] == 'true':

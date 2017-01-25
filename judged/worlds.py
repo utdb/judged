@@ -99,7 +99,7 @@ class Negation(Unary):
     def labels(self):
         return self.sub.labels()
 
-
+# TODO: rework sentence labels to allow function partitiongings and parts
 class Label(Atom):
     def __init__(self, partitioning, part):
         self.partitioning = partitioning
@@ -142,6 +142,7 @@ class Bottom(Atom):
 
 def mybddvar(p, i):
     """ helper function to ensure bddvars have same name everywhere """
+    # TODO: Handle ungrounded variables
     return bdd.variable(str(p)+'_'+str(i))
 
 def exclusion_matrix(partitions, kb):
@@ -175,6 +176,7 @@ def equivalent(l, r, kb):
     Determines if a descriptive sentence is equivalent to another, given the
     mutual exclusions from the given knowledge base.
     """
+    # TODO: Maybe raise if l or r contains ungrounded variables?
     lbdd = l.create_bdd()
     rbdd = r.create_bdd()
 
