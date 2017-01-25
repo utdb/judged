@@ -209,6 +209,9 @@ def ic(command, description=''):
     return registerer
 
 def interactive_command(line):
+    if line == '.':
+        ic_help([])
+        return
     command, *arguments = line[1:].split()
     cmd = interactive_commands.get(command)
     if cmd:
