@@ -28,9 +28,9 @@ class Knowledge:
         Checks if the clause is safe. A clause is safe if the following
         conditions are met: all variables in the head are also present in the
         body, all variables in negated literals are also present in positive
-        literals in the body.
+        literals in the body, all variables in the sentence are also present in
+        the body.
         """
-        # TODO: safety: all variables in the sentence occur in the body.
 
         # head and body variables
         head_vars = {v for v in clause.head if not v.is_const()}
@@ -42,12 +42,16 @@ class Knowledge:
         neg_vars = {v for lit in clause for v in lit if not v.is_const() and lit.polarity == False}
         second = neg_vars <= pos_vars
 
-        return first and second
+        # sentence variables
+        sentence_vars = {v for lbl in clause.sentence.labels() for f in lbl for v in f.variables()}
+        third = sentence_vars <= body_vars
+
+        return first and second and third
 
     def assert_clause(self, clause):
         """Asserts a clause. Raises an error if the clause is unsafe."""
         if not self.is_safe(clause):
-            raise JudgedError("Asserted clause is unsafe: '{}'".format(clause))
+            raise SafetyError("Asserted clause is unsafe: '{}'".format(clause))
 
         # select database first
         db = self.facts if not clause.body else self.rules

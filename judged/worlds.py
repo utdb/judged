@@ -150,6 +150,9 @@ class LabelFragment(metaclass=interned.InternalizeMeta):
     def is_grounded(self):
         raise NotImplementedError
 
+    def variables(self):
+        return []
+
 
 class LabelConstant(LabelFragment):
     def __init__(self, constant):
@@ -185,6 +188,9 @@ class LabelFunction(LabelFragment):
 
     def is_grounded(self):
         return all(t.is_const() for t in self.terms)
+
+    def variables(self):
+        return [t for t in self.terms if not t.is_const()]
 
     def subst(self, env):
         if not env:
