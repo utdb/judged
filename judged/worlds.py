@@ -23,6 +23,12 @@ class Sentence:
     def evaluate(self, checker):
         raise NotImplementedError
 
+    def is_grounded(self):
+        return True
+
+    def subst(self):
+        raise NotImplementedError
+
 
 class Nary(Sentence):
     def __init__(self, *terms):
@@ -39,6 +45,12 @@ class Nary(Sentence):
     def labels(self):
         return {e for t in self.terms for e in t.labels()}
 
+    def is_grounded(self):
+        return all(t.is_grounded() for t in self.terms)
+
+    def subst(self, env):
+        return type(self)(*[t.subst(env) for t in self.terms])
+
 
 class Unary(Sentence):
     def __init__(self, sub):
@@ -47,10 +59,15 @@ class Unary(Sentence):
     def labels():
         return self.sub.labels()
 
+    def is_grounded(self):
+        return self.sub.is_grounded()
+
+    def subst(self, env):
+        return type(self)(self.sub.subst(env))
+
 
 class Atom(Sentence, metaclass=interned.InternalizeMeta):
-    def dummy():
-        return self
+    pass
 
 
 class Disjunction(Nary):
@@ -99,7 +116,7 @@ class Negation(Unary):
     def labels(self):
         return self.sub.labels()
 
-# TODO: rework sentence labels to allow function partitiongings and parts
+
 class Label(Atom):
     def __init__(self, partitioning, part):
         self.partitioning = partitioning
@@ -109,13 +126,72 @@ class Label(Atom):
         return "{}={}".format(self.partitioning, self.part)
 
     def create_bdd(self):
-        return mybddvar(self.partitioning, self.part)
+        return mybddvar(self.partitioning.tag(), self.part.tag())
 
     def labels(self):
         return set([(self.partitioning, self.part)])
 
     def evaluate(self, checker):
         return checker(self.partitioning, self.part)
+
+    def is_grounded(self):
+        return self.partitioning.is_grounded() and self.part.is_grounded()
+
+    def subst(self, env):
+        return type(self)(self.partitioning.subst(env), self.part.subst(env))
+
+
+class LabelFragment(metaclass=interned.InternalizeMeta):
+    def is_grounded(self):
+        raise NotImplementedError
+
+
+class LabelConstant(LabelFragment):
+    def __init__(self, constant):
+        self.constant = constant
+
+    def __str__(self):
+        return str(self.constant)
+
+    def is_grounded(self):
+        return True
+
+    def subst(self, env):
+        return self
+
+    def tag(self):
+        return self.constant
+
+
+class LabelFunction(LabelFragment):
+    def __init__(self, name, terms):
+        self.name = name
+        self.terms = terms
+        self._tag = None
+
+    def __str__(self):
+        return self.name + '(' +  ', '.join(str(t) for t in self.terms) + ')'
+
+    def is_grounded(self):
+        return all(t.is_const() for t in self.terms)
+
+    def subst(self, env):
+        if not env:
+            return self
+
+        terms = list(map(lambda t: t.subst(env), self.terms))
+        return LabelFunction(self.name, tuple(terms))
+
+    def tag(self):
+        def add_size(string):
+            return str(len(string)) + ':' + string
+        result = self._tag
+        if not result:
+            result = add_size(self.name)
+            for i in range(len(self.terms)):
+                result += add_size(self.terms[i].id)
+            self._tag = result
+        return result
 
 
 class Top(Atom):
@@ -177,6 +253,8 @@ def equivalent(l, r, kb):
     mutual exclusions from the given knowledge base.
     """
     # TODO: Maybe raise if l or r contains ungrounded variables?
+    assert l.is_grounded() and r.is_grounded(), "cannot compare ungrounded sentences"
+
     lbdd = l.create_bdd()
     rbdd = r.create_bdd()
 
@@ -205,6 +283,12 @@ def labels(s):
 
 def evaluate(s, checker):
     return s.evaluate(checker)
+
+def is_grounded(s):
+    return s.is_grounded()
+
+def subst(s, env):
+    return s.subst(env)
 
 def conjunct(*terms):
     used = {t for t in terms if t != Top()}

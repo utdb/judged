@@ -30,6 +30,11 @@ def sentence(string):
     ts = parser.Tokens(tokenizer.tokenize(reader))
     return parser.parse_sentence(ts)
 
+def label(string):
+    reader = io.StringIO(string)
+    ts = parser.Tokens(tokenizer.tokenize(reader))
+    return parser.parse_descriptive_label(ts).labels().pop()
+
 @test.worlds
 def equivalence():
     s1 = sentence('x=1')
@@ -43,11 +48,11 @@ def equivalence():
 
     s1 = sentence('(x=1)')
     s2 = sentence('(not x=2)')
-    assert      test_equivalent_fun(s1, s2, {('x','2')})
+    assert      test_equivalent_fun(s1, s2, {label('x=2')})
 
     s1 = sentence('(x=1)')
     s2 = sentence('(not x=2)')
-    assert not test_equivalent_fun(s1, s2, {('x','3')})
+    assert not test_equivalent_fun(s1, s2, {label('x=3')})
 
     s1 = sentence('(x=1)')
     s2 = sentence('(x=1)')
@@ -95,7 +100,7 @@ def falsehoods():
     assert      test_falsehood_fun(s1)
 
     s1 = sentence('(x=1) and (x=2)')
-    assert      test_falsehood_fun(s1, {('x','3')})
+    assert      test_falsehood_fun(s1, {label('x=3')})
 
     s1 = sentence('(x=1) and (y=2)')
     assert not test_falsehood_fun(s1)
@@ -121,3 +126,28 @@ def optimizing_operations():
 
     assert test_equivalent_fun(worlds.conjunct(sfalse, sfalse), sfalse)
     assert test_equivalent_fun(worlds.disjunct(sfalse, sfalse), sfalse)
+
+
+@test.worlds
+def substitution():
+    var = judged.Variable
+    const = judged.Constant
+
+    s1 = sentence('g(C)=1')
+    s2 = sentence('g(42)=1')
+    env = {var('C'): const.number(42)}
+    assert test_equivalent_fun(s1.subst(env), s2)
+
+    s1 = sentence('x=b(test) and a(X,Y)=b(Z)')
+    s2 = sentence('x=b(Z) and a("foo", 10)=b(test)')
+
+    assert not s1.is_grounded()
+    assert not s2.is_grounded()
+
+    env = {var('X'): const.string("foo"), var('Y'):const.number(10), var('Z'):const.symbol('test')}
+    s3 = s1.subst(env)
+    s4 = s2.subst(env)
+
+    assert s3.is_grounded()
+    assert s4.is_grounded()
+    assert test_equivalent_fun(s3, s4)

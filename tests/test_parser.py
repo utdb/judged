@@ -59,11 +59,11 @@ def parse_statement(source):
 
 @test.parser
 def prob_annotation():
-    from judged.worlds import Label
+    from judged.worlds import Label, LabelConstant
 
     a = parse_statement('@p(x=1) = 0.5.')
     assert a[1] == 'annotate'
-    assert a[0] == ('probability', Label('x',1), 0.5)
+    assert a[0] == ('probability', Label(LabelConstant('x'), LabelConstant(1)), 0.5)
 
 @test.parser
 def use_annotation():

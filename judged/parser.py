@@ -209,17 +209,42 @@ def parse_literal(ts):
 
 
 def parse_descriptive_label(ts):
-    # TODO: Parse partitioning and part as IDENTIFIER or IDENTIFIER `(` IDENTIFIER [`,` IDENTIFIER]* `)`
     partitioning = ts.next(IDENTIFIER, 'Expected an identifier or string as partitioning of label in descriptive sentence.')
 
     if partitioning[1] == 'true':
         return worlds.Top()
+
     elif partitioning[1] == 'false':
         return worlds.Bottom()
+
     else:
+        left_name = partitioning
+        terms = []
+        if ts.consume(LPAREN):
+            if not ts.consume(RPAREN):
+                terms.append(ts.next(IDENTIFIER, 'Expected a variable name or constant in a label function.'))
+                while ts.consume(COMMA):
+                    terms.append(ts.next(IDENTIFIER, 'Expected a variable name or constant in a label function.'))
+                ts.expect(RPAREN, 'to close a label function')
+            left = worlds.LabelFunction(left_name[1], tuple(make_term(t) for t in terms))
+        else:
+            left = worlds.LabelConstant(left_name[1])
+
         ts.expect(EQUALS, 'as part of a label')
-        part = ts.next(IDENTIFIER, 'Expected an identifier or string as as part of a label in descriptive sentence.')
-        return worlds.Label(partitioning[1], part[1])
+
+        right_name = ts.next(IDENTIFIER, 'Expected an identifier or string as as part of a label in descriptive sentence.')
+        terms = []
+        if ts.consume(LPAREN):
+            if not ts.consume(RPAREN):
+                terms.append(ts.next(IDENTIFIER, 'Expected a variable name or constant in a label function.'))
+                while ts.consume(COMMA):
+                    terms.append(ts.next(IDENTIFIER, 'Expected a variable name or constant in a label function.'))
+                ts.expect(RPAREN, 'to close a label function')
+            right = worlds.LabelFunction(right_name[1], tuple(make_term(t) for t in terms))
+        else:
+            right = worlds.LabelConstant(right_name[1])
+
+        return worlds.Label(left, right)
 
 
 def parse_sentence_leaf(ts):
