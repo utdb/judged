@@ -26,7 +26,7 @@ class Sentence:
     def is_grounded(self):
         return True
 
-    def subst(self):
+    def subst(self, env):
         raise NotImplementedError
 
 
@@ -67,7 +67,8 @@ class Unary(Sentence):
 
 
 class Atom(Sentence, metaclass=interned.InternalizeMeta):
-    pass
+    def subst(self, env):
+        return self
 
 
 class Disjunction(Nary):
@@ -126,7 +127,7 @@ class Label(Atom):
         return "{}={}".format(self.partitioning, self.part)
 
     def create_bdd(self):
-        return mybddvar(self.partitioning.tag(), self.part.tag())
+        return label_bdd_var(self.partitioning, self.part)
 
     def labels(self):
         return set([(self.partitioning, self.part)])
@@ -157,6 +158,9 @@ class LabelConstant(LabelFragment):
     def __str__(self):
         return str(self.constant)
 
+    def __repr__(self):
+        return "<LabelConstant '{}'>".format(self.constant)
+
     def is_grounded(self):
         return True
 
@@ -164,7 +168,7 @@ class LabelConstant(LabelFragment):
         return self
 
     def tag(self):
-        return self.constant
+        return self.add_size(str(self.constant))
 
 
 class LabelFunction(LabelFragment):
@@ -175,6 +179,9 @@ class LabelFunction(LabelFragment):
 
     def __str__(self):
         return self.name + '(' +  ', '.join(str(t) for t in self.terms) + ')'
+
+    def __repr__(self):
+        return "<LabelFunction {}>".format(self)
 
     def is_grounded(self):
         return all(t.is_const() for t in self.terms)
@@ -187,12 +194,11 @@ class LabelFunction(LabelFragment):
         return LabelFunction(self.name, tuple(terms))
 
     def tag(self):
-        add_size = lambda s: str(len(s))+':'+s
         result = self._tag
         if not result:
-            result = add_size(self.name)
+            result = self.add_size(self.name)
             for i in range(len(self.terms)):
-                result += add_size(self.terms[i].id)
+                result += self.add_size(self.terms[i].id)
             self._tag = result
         return result
 
@@ -219,9 +225,10 @@ class Bottom(Atom):
         return False
 
 
-def mybddvar(p, i):
+def label_bdd_var(partition, part):
     """ helper function to ensure bddvars have same name everywhere """
-    return bdd.variable(str(p)+'_'+str(i))
+    return bdd.variable(partition.tag() + '_' + part.tag())
+
 
 def exclusion_matrix(partitions, kb):
     """
@@ -235,10 +242,10 @@ def exclusion_matrix(partitions, kb):
             excl_sub = None
             excl_subsub = None
             for id in group:
-                excl_subsub = mybddvar(key,id)
+                excl_subsub = label_bdd_var(key, id)
                 for idnot in group:
                     if id != idnot:
-                        excl_subsub = excl_subsub & ~ mybddvar(key,idnot)
+                        excl_subsub = excl_subsub & ~ label_bdd_var(key, idnot)
                 if excl_sub == None:
                     excl_sub = excl_subsub
                 else:
