@@ -248,31 +248,39 @@ def clause_shuffle():
 @test.core
 def clause_safe():
     kb = Knowledge(None)
+    def test_safety(clause):
+        try:
+            kb.raise_for_safety(clause)
+        except judged.SafetyError:
+            return False
+        else:
+            return True
+
     l1 = lit(pred('y', 1), [var('X')])
     l2 = lit(pred('x', 2), [var('X'), var('Y')])
 
     c1 = clause(l1, [l2])
     c2 = clause(l2, [l1])
 
-    assert kb.is_safe(c1)
-    assert not kb.is_safe(c2)
+    assert test_safety(c1)
+    assert not test_safety(c2)
 
     l3 = lit(pred('z', 3), [var('A'), const('alice'), const('mary')])
     c3 = clause(l3, [l3])
-    assert kb.is_safe(c3)
+    assert test_safety(c3)
 
     l4 = lit(pred('z', 1), [var('Z')], False)
 
     c4 = clause(l1, [l2, l4])
-    assert not kb.is_safe(c4)
+    assert not test_safety(c4)
 
     l5 = lit(pred('z', 1), [var('X')], False)
 
     c5 = clause(l1, [l5])
-    assert not kb.is_safe(c5)
+    assert not test_safety(c5)
 
     c6 = clause(l1, [l2, l5])
-    assert kb.is_safe(c6)
+    assert test_safety(c6)
 
 
 @test.prover
