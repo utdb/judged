@@ -142,6 +142,10 @@ class Label(Atom):
 
 
 class LabelFragment(metaclass=interned.InternalizeMeta):
+    @staticmethod
+    def add_size(s):
+        return str(len(s)) + ':' + s
+
     def is_grounded(self):
         raise NotImplementedError
 
@@ -183,8 +187,7 @@ class LabelFunction(LabelFragment):
         return LabelFunction(self.name, tuple(terms))
 
     def tag(self):
-        def add_size(string):
-            return str(len(string)) + ':' + string
+        add_size = lambda s: str(len(s))+':'+s
         result = self._tag
         if not result:
             result = add_size(self.name)
@@ -218,7 +221,6 @@ class Bottom(Atom):
 
 def mybddvar(p, i):
     """ helper function to ensure bddvars have same name everywhere """
-    # TODO: Handle ungrounded variables
     return bdd.variable(str(p)+'_'+str(i))
 
 def exclusion_matrix(partitions, kb):
@@ -252,7 +254,6 @@ def equivalent(l, r, kb):
     Determines if a descriptive sentence is equivalent to another, given the
     mutual exclusions from the given knowledge base.
     """
-    # TODO: Maybe raise if l or r contains ungrounded variables?
     assert l.is_grounded() and r.is_grounded(), "cannot compare ungrounded sentences"
 
     lbdd = l.create_bdd()
