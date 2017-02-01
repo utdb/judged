@@ -12,7 +12,9 @@ Quick Start
 -----------
 
   1. Find the [release](https://github.com/utdb/judged/releases) you are interested in
-  2. `pip install <release tar.gz>` to install
+  2. `pip install <release tar.gz>` to install (if you also have old
+     versions of Python installed on your system, you may need to explictly
+     use `pip3` instead)
   3. Have a look at the examples in `examples/` in this repository, or play
      with the interactive interpreter: `judged`
 
