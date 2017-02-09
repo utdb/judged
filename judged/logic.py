@@ -49,7 +49,7 @@ class Knowledge:
         # sentence variables
         sentence_vars = {v for lbl in clause.sentence.labels() for f in lbl for v in f.variables()}
         if sentence_vars:
-            raise SafetyError("Asserted clause is unsafe, no variables may be present in the sentence, found: '{}'".format(clause))
+            raise SafetyError("Asserted clause is unsafe, no variables may be present in the sentence: '{}'".format(clause))
 
     def assert_clause(self, clause):
         """Asserts a clause. Raises an error if the clause is unsafe."""
