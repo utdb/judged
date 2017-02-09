@@ -316,7 +316,6 @@ class Prover:
 
     def other_answer_with_same_head(self, clause, answers):
         for a in answers:
-            # TODO: Evaluate the impact of this comparison
             if clause == a: continue
             if clause.head == a.head:
                 return True
@@ -371,7 +370,6 @@ class Prover:
                     if cl.head == fact:
                         return True
                 return False
-            # TODO: Evaluate impact of clause comparison
             for c in subgoal.anss:
                 if fact_in_collection(c.head, subgoal.anss):
                     todo.append(self.slg_resolve(clause, selected, Clause(c.head,[],[])))
@@ -421,7 +419,6 @@ class Prover:
         else:
             subgoal = self.subgoals[selected.tag()]
             if not subgoal.comp:
-                # TODO: Evaluate gimped clause comparison for impact
                 if Clause(selected, [], []) not in subgoal.anss:
                     subgoal.negs.append(Waiter(literal, clause, selected))
                     self.update_lookup(literal, selected, False, mins)
@@ -429,7 +426,6 @@ class Prover:
                 negselected = selected.invert()
                 if not subgoal.anss:
                     self.slg_newclause(literal, self.clause_remove_lit(clause, negselected), mins)
-                # TODO: Evaluate gimped clause comparison for impact
                 elif Clause(selected, [], []) not in subgoal.anss:
                     self.slg_newclause(literal, self.clause_delay_lit(clause, negselected), mins)
 
@@ -512,7 +508,6 @@ class Prover:
                 for waiter in negs:
                     if not fb.subgoal.anss:
                         todo.append((waiter.literal, self.clause_remove_lit(waiter.clause, negselected)))
-                    # TODO: Evaluate gimped clause comparison for impact
                     elif Clause(selected, [], []) not in subgoal.anss:
                         todo.append((waiter.literal, self.clause_delay_lit(waiter.clause, negselected)))
                 mins.posmin = float('inf')
@@ -589,7 +584,6 @@ class ExactProver(Prover):
                 body.append(lit)
 
         sentence = worlds.conjunct(clause.sentence, other.sentence)
-        # TODO: Needs work for ungrounded sentences
         if worlds.falsehood(sentence, self.kb):
             return None
 
@@ -637,7 +631,6 @@ class ExactProver(Prover):
         #
         # However, subsumption through equality is still possible.
         result = False
-        # TODO: Evaluate clause comparison for impact
         for cl in answers:
             # XXX: cl.body and cl.delayed empty? This might be an issue.
             if cl.head == clause.head and worlds.equivalent(cl.sentence, clause.sentence, self.kb):
