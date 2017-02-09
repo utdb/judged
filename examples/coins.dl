@@ -1,0 +1,11 @@
+coin(c1).
+coin(c2).
+
+{
+    result(C, heads) :- coin(C) [c(C)=heads].
+    result(C, tails) :- coin(C) [c(C)=tails].
+| coin(C) }
+
+toss(X, Y) :- result(c1, X), result(c2, Y).
+
+toss(A, B)?

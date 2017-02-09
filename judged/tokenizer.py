@@ -22,7 +22,10 @@ punctuation = {
     '?': QUERY,
     '[': LBRACKET,
     ']': RBRACKET,
-    '@': AT
+    '@': AT,
+    '{': LCURLY,
+    '}': RCURLY,
+    '|': BAR
 }
 
 # generation of all punctuation starters
@@ -169,7 +172,7 @@ def tokenize(source):
     Generator function to perform tokenization on a stream of characters.
     """
     cs = Characters(source)
-    state = S_NEUTRAL 
+    state = S_NEUTRAL
     accum = ''
     line = 0
     csi = iter(cs)
