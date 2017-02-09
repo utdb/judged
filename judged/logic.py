@@ -48,9 +48,8 @@ class Knowledge:
 
         # sentence variables
         sentence_vars = {v for lbl in clause.sentence.labels() for f in lbl for v in f.variables()}
-        third = sentence_vars <= body_vars
-        if not third:
-            raise SafetyError("Asserted clause is unsafe, all variables in the sentence must be present in the body: '{}'".format(clause))
+        if sentence_vars:
+            raise SafetyError("Asserted clause is unsafe, no variables may be present in the sentence, found: '{}'".format(clause))
 
     def assert_clause(self, clause):
         """Asserts a clause. Raises an error if the clause is unsafe."""

@@ -69,5 +69,5 @@ def safety():
     l3 = lit(pred('f', 1), [var('X')])
     l4 = lit(pred('g', 1), [var('X')])
 
-    c2 = clause(l3, [l4], [], wand(wl('x','1'), wlabel(wlf('p', (var('X'),)),wlc('2'))))
+    c2 = clause(l3, [l4], [], wand(wl('x','1'), wlabel(wlf('p', (const.symbol('y'),)),wlc('2'))))
     assert assert_clause(c2), "Safe clause {} was rejected".format(c2)
