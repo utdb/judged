@@ -6,6 +6,7 @@ import judged
 from judged import tokenizer
 from judged import parser
 from judged import context
+from judged import actions
 
 import io
 from pathlib import Path
@@ -36,23 +37,20 @@ def make_suite(path, root, context_type):
         output = []
 
         with path.open() as f:
-            for clause, action, location in parser.parse(f):
+            for action in parser.parse(f):
                 try:
-                    if action == 'assert':
-                        context.knowledge.assert_clause(clause)
-                    elif action == 'retract':
-                        context.knowledge.retract_clause(clause)
-                    elif action == 'query':
-                        literal = clause.head
-                        for a in context.ask(literal).answers:
+                    if isinstance(action, actions.QueryAction):
+                        for a in action.perform(context).answers:
                             output.append(a.clause)
+                    else:
+                        action.perform(context)
                 except judged.JudgedError as e:
                     raise AssertionError from e
 
         with expect_file.open() as f:
-            for clause, action, location in parser.parse(f):
-                if action == 'assert':
-                    expected.append(clause)
+            for action in parser.parse(f):
+                if isinstance(action, actions.AssertAction):
+                    expected.append(action.clause)
                 else:
                     raise AssertionError("Programmer error: action '{}' in expectations file for this case".format(
                         action

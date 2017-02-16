@@ -1,4 +1,5 @@
 from judged import worlds
+from judged import JudgedError
 
 
 class Action:
@@ -37,9 +38,9 @@ class QueryAction(Action):
     def __init__(self, clause, *, source=None):
         super().__init__(source)
         if len(clause) > 0:
-            raise judged.JudgedError('Cannot query for a clause (only literals can be queried on).')
+            raise JudgedError('Cannot query for a clause (only literals can be queried on).')
         if clause.sentence != worlds.Top():
-            raise judged.JudgedError('Cannot perform a query with a descriptive sentence.')
+            raise JudgedError('Cannot perform a query with a descriptive sentence.')
 
         self.clause = clause
 
