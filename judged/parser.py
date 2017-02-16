@@ -9,6 +9,7 @@ import judged
 from judged import tokenizer
 from judged.tokens import *
 from judged import worlds
+from judged import actions
 
 from judged import ParseError
 from judged.tokenizer import LocationContext
@@ -110,14 +111,6 @@ def parse(reader):
 # identifier token filter
 IDENTIFIER = lambda t: t[0] in (NAME, STRING, NUMBER)
 
-# action mappings
-actions = {
-    PERIOD: 'assert',
-    TILDE: 'retract',
-    QUERY: 'query',
-    AT: 'annotate'
-}
-
 
 def _parse(tokens):
     """
@@ -128,16 +121,23 @@ def _parse(tokens):
 
     while ts:
         start_t = ts.peek()
+
         if ts.consume(AT):
             annotation = parse_annotation(ts)
             t_action = ts.next(lambda t: t[0] == PERIOD, 'Expected period to close annotation')
-            yield(annotation, actions[AT], LocationContext(start_t[2], t_action[2]))
+            annotation.source = LocationContext(start_t[2], t_action[2])
+            yield annotation
         else:
             clause = parse_clause(ts)
             t_action = ts.next(lambda t: t[0] in (PERIOD, TILDE, QUERY), 'Expected period, tilde or question mark to indicate action.')
-            action = actions[t_action[0]]
+            source = LocationContext(start_t[2], t_action[2])
 
-            yield (clause, action, LocationContext(start_t[2], t_action[2]))
+            if t_action[0] == PERIOD:
+                yield actions.AssertAction(clause, source=source)
+            elif t_action[0] == TILDE:
+                yield actions.RetractAction(clause, source=source)
+            elif t_action[0] == QUERY:
+                yield actions.QueryAction(clause, source=source)
 
 
 def make_term(token):
@@ -354,7 +354,7 @@ def parse_annotation(ts):
         label = parse_probability(ts)
         ts.expect(EQUALS,'to continue probability assignment')
         prob_t = ts.expect(NUMBER, 'to complete probability assignment.')
-        return ('probability', label, prob_t[1])
+        return actions.AnnotateProbabilityAction(label, prob_t[1])
 
     elif ts.test(lambda t: t[0] == NAME and t[1] == 'uniform'):
         ts.expect(NAME)
@@ -369,14 +369,13 @@ def parse_annotation(ts):
             left = worlds.LabelFunction(left_name[1], tuple(make_term(t) for t in terms))
         else:
             left = worlds.LabelConstant(left_name[1])
-        return ('distribution', left, 'uniform')
+        return actions.AnnotateDistributionAction(left, 'uniform')
 
     elif ts.test(lambda t: t[0] == NAME and t[1] == 'use'):
-        use_annotation = parse_use_annotation(ts)
-        return ('use_module', use_annotation)
+        return actions.UseModuleAction(*parse_use_annotation(ts))
 
     elif ts.test(lambda t: t[0] == NAME and t[1] == 'from'):
-        return ('from_module', parse_from_annotation(ts))
+        return actions.UsePredicateAction(*parse_from_annotation(ts))
 
     else:
         t = ts.peek()

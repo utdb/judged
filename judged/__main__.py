@@ -33,15 +33,23 @@ FORMAT_ENV_KEY = 'DATALOG_FORMAT'
 current_context = None
 args = None
 
+# Internal bookkeeping to map driver handling to actions
+action_handlers = {}
 
-# FIXME: Refactor the query, assert, retract, and annotate actions to the context
-def query(clause):
+def handles(action_type):
+    def registerer(f):
+        action_handlers[action_type] = f
+        return f
+    return registerer
+
+
+# Action action_handlers
+@handles(actions.QueryAction)
+def query(action):
     """Executes a query and presents the answers."""
     if args.verbose or args.verbose_questions:
-        literal = clause.head
-        print(formatting.comment("% query ") + "{}".format(literal))
-
-    result = actions.QueryAction(clause).perform(current_context)
+        print(formatting.comment("% ") + "{}".format(action))
+    result = action.perform(current_context)
 
     # LATER: `sorted` can be removed for python3.6 with stable dictionaries
     for k in sorted(result.notes):
@@ -54,69 +62,10 @@ def query(clause):
         print()
 
 
-def annotate(annotation):
-    """
-    Handles annotations in the judged source.
-    """
-    if annotation[0] == 'probability':
-        annotate_probability(*annotation[1:])
-
-    elif annotation[0] == 'distribution':
-        annotate_distribution(*annotation[1:])
-
-    elif annotation[0] == 'use_module':
-        annotate_use_module(*annotation[1])
-
-    elif annotation[0] == 'from_module':
-        annotation_from_module(*annotation[1])
-
-    else:
-        raise judged.JudgedError("Unknown annotation {}".format(annotation))
-
-
-def annotate_probability(label, probability):
-    actions.AnnotateProbabilityAction(label.partitioning, label.part, probability).perform(current_context)
-    if args.verbose: print(formatting.comment("% annotate ") + "p({}) = {}".format(label, probability))
-
-
-def annotate_distribution(partitioning, distribution):
-    actions.AnnotateDistributionAction(partitioning, distribution).perform(current_context)
+def default_handler(action):
     if args.verbose:
-        print(formatting.comment("% annotate {} distribution for p({})".format(distribution, formatting.sentence(partitioning))))
-
-
-def annotate_use_module(module, config):
-    actions.UseModuleAction(module, config).perform(current_context)
-    if args.verbose: print(formatting.comment("% using module '{}' with arguments {}".format(module, config)))
-
-
-def annotation_from_module(module, predicate, alias):
-    actions.UsePredicateAction(module, predicate, alias).perform(current_context)
-    if args.verbose:
-        if alias:
-            print(formatting.comment("% using predicate '{}' from module '{}', aliased as '{}'".format(predicate, module, alias)))
-        else:
-            print(formatting.comment("% using predicate '{}' from module '{}'".format(predicate, module)))
-
-
-def assert_clause(clause):
-    if args.verbose:
-        print(formatting.comment("% assert ") + "{}".format(clause))
-    actions.AssertAction(clause).perform(current_context)
-
-
-def retract_clause(clause):
-    if args.verbose:
-        print(formatting.comment("% retract ") + "{}".format(clause))
-    actions.RetractAction(clause).perform(current_context)
-
-
-action_lookup = {
-    'assert': assert_clause,
-    'retract': retract_clause,
-    'annotate': annotate,
-    'query': query
-}
+        print(formatting.comment("% ") + "{}".format(action))
+    action.perform(current_context)
 
 
 def handle_reader(reader):
@@ -125,11 +74,12 @@ def handle_reader(reader):
     action will be furnished with context information based on the context
     information of the parsed action.
     """
-    for clause, action, location in parser.parse(reader):
+    for action in parser.parse(reader):
         try:
-            action_lookup[action](clause)
+            handler = action_handlers.get(type(action), default_handler)
+            handler(action)
         except judged.JudgedError as e:
-            e.context = location
+            e.context = action.source
             raise e
 
 
