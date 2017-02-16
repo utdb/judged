@@ -5,6 +5,7 @@ Entry point to provide REPL and file processing.
 
 import judged
 from judged import context
+from judged import actions
 from judged import tokenizer
 from judged import parser
 from judged import logic
@@ -36,16 +37,11 @@ args = None
 # FIXME: Refactor the query, assert, retract, and annotate actions to the context
 def query(clause):
     """Executes a query and presents the answers."""
-    if len(clause) > 0:
-        raise judged.JudgedError('Cannot query for a clause (only literals can be queried on).')
-    if clause.sentence != worlds.Top():
-        raise judged.JudgedError('Cannot perform a query with a descriptive sentence.')
-
-    literal = clause.head
     if args.verbose or args.verbose_questions:
+        literal = clause.head
         print(formatting.comment("% query ") + "{}".format(literal))
 
-    result = current_context.ask(literal)
+    result = actions.QueryAction(clause).perform(current_context)
 
     # LATER: `sorted` can be removed for python3.6 with stable dictionaries
     for k in sorted(result.notes):
@@ -79,40 +75,23 @@ def annotate(annotation):
 
 
 def annotate_probability(label, probability):
+    actions.AnnotateProbabilityAction(label.partitioning, label.part, probability).perform(current_context)
     if args.verbose: print(formatting.comment("% annotate ") + "p({}) = {}".format(label, probability))
-    current_context.add_probability(label.partitioning, label.part, probability)
 
 
-def annotate_distribution(distribution, partitioning):
+def annotate_distribution(partitioning, distribution):
+    actions.AnnotateDistributionAction(partitioning, distribution).perform(current_context)
     if args.verbose:
-        print(formatting.comment("% annotate {} distribution for p({})".format(distribution, partitioning)))
-
-    # determine all present parts
-    parts = current_context.knowledge.parts(partitioning)
-
-    if parts:
-        for part in parts:
-            current_context.add_probability(partitioning, part, 1/len(parts))
-            print(formatting.comment("%% Setting p({}={}) = {}".format(partitioning, part, 1/len(parts))))
+        print(formatting.comment("% annotate {} distribution for p({})".format(distribution, formatting.sentence(partitioning))))
 
 
 def annotate_use_module(module, config):
-    ext = extensions.known_extensions.get(module)
-    if ext is None:
-        raise extensions.ExtensionError("Module '{}' not found.".format(module))
-
-    current_context.use_extension(ext, config)
+    actions.UseModuleAction(module, config).perform(current_context)
     if args.verbose: print(formatting.comment("% using module '{}' with arguments {}".format(module, config)))
-    return ext
 
 
 def annotation_from_module(module, predicate, alias):
-    ext = current_context.extensions.get(module)
-    if not ext:
-        ext = annotate_use_module(module, {})
-    if not ext:
-        raise extensions.ExternsionError("Module '{}' not succesfully registered, no predicates can be used from it".format(module))
-    ext.register_predicate(current_context, predicate, alias)
+    actions.UsePredicateAction(module, predicate, alias).perform(current_context)
     if args.verbose:
         if alias:
             print(formatting.comment("% using predicate '{}' from module '{}', aliased as '{}'".format(predicate, module, alias)))
@@ -123,16 +102,16 @@ def annotation_from_module(module, predicate, alias):
 def assert_clause(clause):
     if args.verbose:
         print(formatting.comment("% assert ") + "{}".format(clause))
-    current_context.knowledge.assert_clause(clause)
+    actions.AssertAction(clause).perform(current_context)
 
 
 def retract_clause(clause):
     if args.verbose:
         print(formatting.comment("% retract ") + "{}".format(clause))
-    current_context.knowledge.retract_clause(clause)
+    actions.RetractAction(clause).perform(current_context)
 
 
-actions = {
+action_lookup = {
     'assert': assert_clause,
     'retract': retract_clause,
     'annotate': annotate,
@@ -148,7 +127,7 @@ def handle_reader(reader):
     """
     for clause, action, location in parser.parse(reader):
         try:
-            actions[action](clause)
+            action_lookup[action](clause)
         except judged.JudgedError as e:
             e.context = location
             raise e

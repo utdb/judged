@@ -7,6 +7,7 @@ import collections
 import contextlib
 
 from judged.logic import Knowledge, Prover,  ExactProver
+from judged import JudgedError
 
 
 Answer = collections.namedtuple('Answer', ['clause', 'probability'])

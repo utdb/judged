@@ -116,7 +116,8 @@ class Knowledge:
         for db in (self.rules, self.facts):
             for bucket in db.values():
                 for clause in bucket.values():
-                    result.update(lbl[1] for lbl in clause.sentence.labels() if lbl[0]==partitioning)
+                    labels = list(lbl[1] for lbl in clause.sentence.labels() if lbl[0]==partitioning)
+                    result.update(labels)
         return result
 
 

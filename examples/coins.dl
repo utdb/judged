@@ -1,10 +1,21 @@
 coin(c1).
 coin(c2).
 
-{
-    result(C, heads) :- coin(C) [c(C)=heads].
-    result(C, tails) :- coin(C) [c(C)=tails].
-| coin(C) }
+%{
+%    result(C, heads) :- coin(C) [c(C)=heads].
+%    result(C, tails) :- coin(C) [c(C)=tails].
+%| coin(C) }
+
+result(c1, heads) :- coin(c1) [c(c1)=heads].
+result(c1, tails) :- coin(c1) [c(c1)=tails].
+
+@p(c(c1)=heads) = 0.5.
+@p(c(c1)=tails) = 0.5.
+
+result(c2, heads) :- coin(c2) [c(c2)=heads].
+result(c2, tails) :- coin(c2) [c(c2)=tails].
+
+@uniform c(c2).
 
 toss(X, Y) :- result(c1, X), result(c2, Y).
 

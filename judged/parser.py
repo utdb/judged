@@ -340,6 +340,7 @@ def parse_probability_var(ts):
     """
     ts.next(lambda t: t[0] == NAME and t[1] in ('P','p'), 'Expected a probability notation of the form P(x)')
     ts.expect(LPAREN)
+    # FIXME: Needs to allow variables
     variable = ts.next(IDENTIFIER, 'Expected an identifier or string as partitioning name.')
     ts.expect(RPAREN)
     return variable
@@ -357,8 +358,18 @@ def parse_annotation(ts):
 
     elif ts.test(lambda t: t[0] == NAME and t[1] == 'uniform'):
         ts.expect(NAME)
-        prob_t = parse_probability_var(ts)
-        return ('distribution', prob_t[1], 'uniform')
+        left_name = ts.next(IDENTIFIER, 'Expect an identifier as partitioning name or label function name.')
+        terms = []
+        if ts.consume(LPAREN):
+            if not ts.consume(RPAREN):
+                terms.append(ts.next(IDENTIFIER, 'Expected a variable name or constant in a label function.'))
+                while ts.consume(COMMA):
+                    terms.append(ts.next(IDENTIFIER, 'Expected a variable name or constant in a label function.'))
+                ts.expect(RPAREN, 'to close a label function')
+            left = worlds.LabelFunction(left_name[1], tuple(make_term(t) for t in terms))
+        else:
+            left = worlds.LabelConstant(left_name[1])
+        return ('distribution', left, 'uniform')
 
     elif ts.test(lambda t: t[0] == NAME and t[1] == 'use'):
         use_annotation = parse_use_annotation(ts)
