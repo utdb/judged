@@ -9,6 +9,9 @@ class Action:
     def perform(self, context):
         raise NotImplementedError
 
+    def substitute(self, env):
+        return self
+
 
 class AssertAction(Action):
     def __init__(self, clause, *, source=None):
@@ -21,6 +24,10 @@ class AssertAction(Action):
     def __str__(self):
         return "assert {}".format(self.clause)
 
+    def substitute(self, env):
+        cls = type(self)
+        return cls(self.clause.subst(env), source=self.source)
+
 
 class RetractAction(Action):
     def __init__(self, clause, *, source=None):
@@ -32,6 +39,10 @@ class RetractAction(Action):
 
     def __str__(self):
         return "retract {}".format(self.clause)
+
+    def substitute(self, env):
+        cls = type(self)
+        return cls(self.clause.subst(env), source=self.source)
 
 
 class QueryAction(Action):
@@ -52,6 +63,10 @@ class QueryAction(Action):
     def __str__(self):
         return "query {}".format(self.clause)
 
+    def substitute(self, env):
+        cls = type(self)
+        return cls(self.clause.subst(env), source=self.source)
+
 
 class AnnotateProbabilityAction(Action):
     def __init__(self, label, probability, *, source=None):
@@ -64,6 +79,10 @@ class AnnotateProbabilityAction(Action):
 
     def __str__(self):
         return "annotate p({}) = {}".format(self.label, self.probability)
+
+    def substitute(self, env):
+        cls = type(self)
+        return cls(self.label.subst(env), self.probability, source=self.source)
 
 
 class AnnotateDistributionAction(Action):
@@ -82,6 +101,10 @@ class AnnotateDistributionAction(Action):
 
     def __str__(self):
         return "annotate p({}) with {} distribution".format(self.partitioning, self.distribution)
+
+    def substitute(self, env):
+        cls = type(self)
+        return cls(self.partitioning.subst(env), self.distribution, source=self.source)
 
 
 class UseModuleAction(Action):
@@ -117,3 +140,40 @@ class UsePredicateAction(Action):
 
     def __str__(self):
         return "use predicate '{}' from module '{}'".format(self.predicate, self.module) + (" aliased as '{}'".format(self.alias) if self.alias else '')
+
+
+class GeneratorAction(Action):
+    def __init__(self, children, query_clause, *, source=None):
+        super().__init__(source)
+        self.children = children
+        if len(query_clause) > 0:
+            raise JudgedError('Generator query clause must be a literal')
+        if query_clause.sentence != worlds.Top():
+            raise JudgedError('Cannot perform a query with a descriptive sentence.')
+        self.query_clause = query_clause
+
+    def perform(self, context):
+        result = context.ask(self.query_clause.head)
+
+        # Skip any non-exact results
+        if result.notes and result.notes.get('iterations') != 1:
+            return
+
+        for answer in result.answers:
+            # skip any non-guaranteed results
+            if answer.probability is not None and answer.probability != 1.0:
+                continue
+            if answer.clause.sentence != worlds.Top():
+                continue
+
+            # get the substitution environment for the answer
+            env = self.query_clause.head.unify(answer.clause.head)
+            for action in [c.substitute(env) for c in self.children]:
+                action.perform(context)
+
+    def __str__(self):
+        return "generate for {{{}}} based on {}".format(', '.join("{}".format(c) for c in self.children), self.query_clause)
+
+    def substitute(self, env):
+        cls = type(self)
+        return cls([c.substitute(env) for c in self.children], self.query_clause.subst(env), source=self.source)

@@ -139,6 +139,17 @@ def parse_action(tokens):
         t_action = tokens.next(lambda t: t[0] == PERIOD, 'Expected period to close annotation')
         annotation.source = LocationContext(start_t[2], t_action[2])
         return annotation
+
+    elif tokens.consume(LCURLY):
+        children = []
+        while not tokens.test_for(BAR):
+            children.append(parse_action(tokens))
+        tokens.expect(BAR, 'bar symbol to enter query part of generator')
+        query_clause = parse_clause(tokens)
+        t_end = tokens.expect(RCURLY, 'curly bracket to close generator')
+        source = LocationContext(start_t[2], t_end[2])
+        return actions.GeneratorAction(children, query_clause, source=source)
+
     else:
         clause = parse_clause(tokens)
         t_action = tokens.next(lambda t: t[0] in (PERIOD, TILDE, QUERY), 'Expected period, tilde or question mark to indicate action.')
@@ -150,7 +161,6 @@ def parse_action(tokens):
             return actions.RetractAction(clause, source=source)
         elif t_action[0] == QUERY:
             return actions.QueryAction(clause, source=source)
-
 
 
 def make_term(token):

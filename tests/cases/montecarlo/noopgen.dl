@@ -1,0 +1,8 @@
+sometimes(1) [x=1].
+sometimes(2) [x=2].
+
+@uniform x.
+
+{ other(X). | sometimes(X) }
+
+other(A)?
