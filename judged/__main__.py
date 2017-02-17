@@ -24,7 +24,7 @@ import collections
 
 # Public constants
 NAME  = 'JudgeD'
-VERSION = '0.9.dev2'
+VERSION = '0.9.dev3'
 
 
 # Internal constants
