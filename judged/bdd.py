@@ -94,7 +94,7 @@ class BDD:
         self.node = node
 
     def restrict(self, point):
-        return BDD(_restrict(self.node))
+        return BDD(_restrict(self.node, point))
 
     def is_zero(self):
         return self.node == ZERO

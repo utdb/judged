@@ -5,6 +5,7 @@ Entry point to provide REPL and file processing.
 
 import judged
 from judged import context
+from judged import actions
 from judged import tokenizer
 from judged import parser
 from judged import logic
@@ -32,20 +33,23 @@ FORMAT_ENV_KEY = 'DATALOG_FORMAT'
 current_context = None
 args = None
 
+# Internal bookkeeping to map driver handling to actions
+action_handlers = {}
 
-# FIXME: Refactor the query, assert, retract, and annotate actions to the context
-def query(clause):
+def handles(action_type):
+    def registerer(f):
+        action_handlers[action_type] = f
+        return f
+    return registerer
+
+
+# Action action_handlers
+@handles(actions.QueryAction)
+def query(action):
     """Executes a query and presents the answers."""
-    if len(clause) > 0:
-        raise judged.JudgedError('Cannot query for a clause (only literals can be queried on).')
-    if clause.sentence != worlds.Top():
-        raise judged.JudgedError('Cannot perform a query with a descriptive sentence.')
-
-    literal = clause.head
     if args.verbose or args.verbose_questions:
-        print(formatting.comment("% query ") + "{}".format(literal))
-
-    result = current_context.ask(literal)
+        print(formatting.comment("% ") + "{}".format(action))
+    result = action.perform(current_context)
 
     # LATER: `sorted` can be removed for python3.6 with stable dictionaries
     for k in sorted(result.notes):
@@ -58,86 +62,10 @@ def query(clause):
         print()
 
 
-def annotate(annotation):
-    """
-    Handles annotations in the judged source.
-    """
-    if annotation[0] == 'probability':
-        annotate_probability(*annotation[1:])
-
-    elif annotation[0] == 'distribution':
-        annotate_distribution(*annotation[1:])
-
-    elif annotation[0] == 'use_module':
-        annotate_use_module(*annotation[1])
-
-    elif annotation[0] == 'from_module':
-        annotation_from_module(*annotation[1])
-
-    else:
-        raise judged.JudgedError("Unknown annotation {}".format(annotation))
-
-
-def annotate_probability(label, probability):
-    if args.verbose: print(formatting.comment("% annotate ") + "p({}) = {}".format(label, probability))
-    current_context.add_probability(label.partitioning, label.part, probability)
-
-
-def annotate_distribution(distribution, partitioning):
+def default_handler(action):
     if args.verbose:
-        print(formatting.comment("% annotate {} distribution for p({})".format(distribution, partitioning)))
-
-    # determine all present parts
-    parts = current_context.knowledge.parts(partitioning)
-
-    if parts:
-        for part in parts:
-            current_context.add_probability(partitioning, part, 1/len(parts))
-            print(formatting.comment("%% Setting p({}={}) = {}".format(partitioning, part, 1/len(parts))))
-
-
-def annotate_use_module(module, config):
-    ext = extensions.known_extensions.get(module)
-    if ext is None:
-        raise extensions.ExtensionError("Module '{}' not found.".format(module))
-
-    current_context.use_extension(ext, config)
-    if args.verbose: print(formatting.comment("% using module '{}' with arguments {}".format(module, config)))
-    return ext
-
-
-def annotation_from_module(module, predicate, alias):
-    ext = current_context.extensions.get(module)
-    if not ext:
-        ext = annotate_use_module(module, {})
-    if not ext:
-        raise extensions.ExternsionError("Module '{}' not succesfully registered, no predicates can be used from it".format(module))
-    ext.register_predicate(current_context, predicate, alias)
-    if args.verbose:
-        if alias:
-            print(formatting.comment("% using predicate '{}' from module '{}', aliased as '{}'".format(predicate, module, alias)))
-        else:
-            print(formatting.comment("% using predicate '{}' from module '{}'".format(predicate, module)))
-
-
-def assert_clause(clause):
-    if args.verbose:
-        print(formatting.comment("% assert ") + "{}".format(clause))
-    current_context.knowledge.assert_clause(clause)
-
-
-def retract_clause(clause):
-    if args.verbose:
-        print(formatting.comment("% retract ") + "{}".format(clause))
-    current_context.knowledge.retract_clause(clause)
-
-
-actions = {
-    'assert': assert_clause,
-    'retract': retract_clause,
-    'annotate': annotate,
-    'query': query
-}
+        print(formatting.comment("% ") + "{}".format(action))
+    action.perform(current_context)
 
 
 def handle_reader(reader):
@@ -146,11 +74,12 @@ def handle_reader(reader):
     action will be furnished with context information based on the context
     information of the parsed action.
     """
-    for clause, action, location in parser.parse(reader):
+    for action in parser.parse(reader):
         try:
-            actions[action](clause)
+            handler = action_handlers.get(type(action), default_handler)
+            handler(action)
         except judged.JudgedError as e:
-            e.context = location
+            e.context = action.source
             raise e
 
 

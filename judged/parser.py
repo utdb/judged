@@ -9,6 +9,7 @@ import judged
 from judged import tokenizer
 from judged.tokens import *
 from judged import worlds
+from judged import actions
 
 from judged import ParseError
 from judged.tokenizer import LocationContext
@@ -102,42 +103,64 @@ class Tokens:
         return not self.is_empty()
 
 
-def parse(reader):
-    """Helper function to act as single point of entry for simple parses."""
-    yield from _parse(tokenizer.tokenize(reader))
-
-
 # identifier token filter
 IDENTIFIER = lambda t: t[0] in (NAME, STRING, NUMBER)
 
-# action mappings
-actions = {
-    PERIOD: 'assert',
-    TILDE: 'retract',
-    QUERY: 'query',
-    AT: 'annotate'
-}
 
-
-def _parse(tokens):
+def parse_main(tokens):
     """
-    Parser entry point. This generator will yield a tuple of (clause, action,
-    context) per parsed clause.
+    Parser entry point.
     """
-    ts = Tokens(tokens)
+    while tokens:
+        yield parse_action(tokens)
 
-    while ts:
-        start_t = ts.peek()
-        if ts.consume(AT):
-            annotation = parse_annotation(ts)
-            t_action = ts.next(lambda t: t[0] == PERIOD, 'Expected period to close annotation')
-            yield(annotation, actions[AT], LocationContext(start_t[2], t_action[2]))
-        else:
-            clause = parse_clause(ts)
-            t_action = ts.next(lambda t: t[0] in (PERIOD, TILDE, QUERY), 'Expected period, tilde or question mark to indicate action.')
-            action = actions[t_action[0]]
 
-            yield (clause, action, LocationContext(start_t[2], t_action[2]))
+def reader_parse(reader, rule=parse_main):
+    """Helper function to parse directly from a reader."""
+    token_stream = tokenizer.tokenize(reader)
+    tokens = Tokens(token_stream)
+    return rule(tokens)
+
+
+def string_parse(string, rule=parse_main):
+    import io
+    return reader_parse(io.StringIO(string), rule)
+
+
+def parse(reader):
+    return reader_parse(reader, parse_main)
+
+
+def parse_action(tokens):
+    start_t = tokens.peek()
+
+    if tokens.consume(AT):
+        annotation = parse_annotation(tokens)
+        t_action = tokens.next(lambda t: t[0] == PERIOD, 'Expected period to close annotation')
+        annotation.source = LocationContext(start_t[2], t_action[2])
+        return annotation
+
+    elif tokens.consume(LCURLY):
+        children = []
+        while not tokens.test_for(BAR):
+            children.append(parse_action(tokens))
+        tokens.expect(BAR, 'bar symbol to enter query part of generator')
+        query_clause = parse_clause(tokens)
+        t_end = tokens.expect(RCURLY, 'curly bracket to close generator')
+        source = LocationContext(start_t[2], t_end[2])
+        return actions.GeneratorAction(children, query_clause, source=source)
+
+    else:
+        clause = parse_clause(tokens)
+        t_action = tokens.next(lambda t: t[0] in (PERIOD, TILDE, QUERY), 'Expected period, tilde or question mark to indicate action.')
+        source = LocationContext(start_t[2], t_action[2])
+
+        if t_action[0] == PERIOD:
+            return actions.AssertAction(clause, source=source)
+        elif t_action[0] == TILDE:
+            return actions.RetractAction(clause, source=source)
+        elif t_action[0] == QUERY:
+            return actions.QueryAction(clause, source=source)
 
 
 def make_term(token):
@@ -213,12 +236,38 @@ def parse_descriptive_label(ts):
 
     if partitioning[1] == 'true':
         return worlds.Top()
+
     elif partitioning[1] == 'false':
         return worlds.Bottom()
+
     else:
+        left_name = partitioning
+        terms = []
+        if ts.consume(LPAREN):
+            if not ts.consume(RPAREN):
+                terms.append(ts.next(IDENTIFIER, 'Expected a variable name or constant in a label function.'))
+                while ts.consume(COMMA):
+                    terms.append(ts.next(IDENTIFIER, 'Expected a variable name or constant in a label function.'))
+                ts.expect(RPAREN, 'to close a label function')
+            left = worlds.LabelFunction(left_name[1], tuple(make_term(t) for t in terms))
+        else:
+            left = worlds.LabelConstant(left_name[1])
+
         ts.expect(EQUALS, 'as part of a label')
-        part = ts.next(IDENTIFIER, 'Expected an identifier or string as as part of a label in descriptive sentence.')
-        return worlds.Label(partitioning[1], part[1])
+
+        right_name = ts.next(IDENTIFIER, 'Expected an identifier or string as as part of a label in descriptive sentence.')
+        terms = []
+        if ts.consume(LPAREN):
+            if not ts.consume(RPAREN):
+                terms.append(ts.next(IDENTIFIER, 'Expected a variable name or constant in a label function.'))
+                while ts.consume(COMMA):
+                    terms.append(ts.next(IDENTIFIER, 'Expected a variable name or constant in a label function.'))
+                ts.expect(RPAREN, 'to close a label function')
+            right = worlds.LabelFunction(right_name[1], tuple(make_term(t) for t in terms))
+        else:
+            right = worlds.LabelConstant(right_name[1])
+
+        return worlds.Label(left, right)
 
 
 def parse_sentence_leaf(ts):
@@ -314,6 +363,7 @@ def parse_probability_var(ts):
     """
     ts.next(lambda t: t[0] == NAME and t[1] in ('P','p'), 'Expected a probability notation of the form P(x)')
     ts.expect(LPAREN)
+    # FIXME: Needs to allow variables
     variable = ts.next(IDENTIFIER, 'Expected an identifier or string as partitioning name.')
     ts.expect(RPAREN)
     return variable
@@ -327,19 +377,28 @@ def parse_annotation(ts):
         label = parse_probability(ts)
         ts.expect(EQUALS,'to continue probability assignment')
         prob_t = ts.expect(NUMBER, 'to complete probability assignment.')
-        return ('probability', label, prob_t[1])
+        return actions.AnnotateProbabilityAction(label, prob_t[1])
 
     elif ts.test(lambda t: t[0] == NAME and t[1] == 'uniform'):
         ts.expect(NAME)
-        prob_t = parse_probability_var(ts)
-        return ('distribution', prob_t[1], 'uniform')
+        left_name = ts.next(IDENTIFIER, 'Expect an identifier as partitioning name or label function name.')
+        terms = []
+        if ts.consume(LPAREN):
+            if not ts.consume(RPAREN):
+                terms.append(ts.next(IDENTIFIER, 'Expected a variable name or constant in a label function.'))
+                while ts.consume(COMMA):
+                    terms.append(ts.next(IDENTIFIER, 'Expected a variable name or constant in a label function.'))
+                ts.expect(RPAREN, 'to close a label function')
+            left = worlds.LabelFunction(left_name[1], tuple(make_term(t) for t in terms))
+        else:
+            left = worlds.LabelConstant(left_name[1])
+        return actions.AnnotateDistributionAction(left, 'uniform')
 
     elif ts.test(lambda t: t[0] == NAME and t[1] == 'use'):
-        use_annotation = parse_use_annotation(ts)
-        return ('use_module', use_annotation)
+        return actions.UseModuleAction(*parse_use_annotation(ts))
 
     elif ts.test(lambda t: t[0] == NAME and t[1] == 'from'):
-        return ('from_module', parse_from_annotation(ts))
+        return actions.UsePredicateAction(*parse_from_annotation(ts))
 
     else:
         t = ts.peek()

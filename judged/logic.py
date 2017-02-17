@@ -23,29 +23,37 @@ class Knowledge:
 
         judged.primitives.register_primitives(self)
 
-    def is_safe(self, clause):
+    def raise_for_safety(self, clause):
         """
         Checks if the clause is safe. A clause is safe if the following
         conditions are met: all variables in the head are also present in the
         body, all variables in negated literals are also present in positive
-        literals in the body.
+        literals in the body, all variables in the sentence are also present in
+        the body.
         """
+
         # head and body variables
         head_vars = {v for v in clause.head if not v.is_const()}
         body_vars = {v for lit in clause for v in lit if not v.is_const()}
         first = head_vars <= body_vars
+        if not first:
+            raise SafetyError("Asserted clause is unsafe, all variables in the head must be present in the body: '{}'".format(clause))
 
         # positive and negative variables
         pos_vars = {v for lit in clause for v in lit if not v.is_const() and lit.polarity == True}
         neg_vars = {v for lit in clause for v in lit if not v.is_const() and lit.polarity == False}
         second = neg_vars <= pos_vars
+        if not second:
+            raise SafetyError("Asserted clause is unsafe, all variables in negated literals must be present in positive literals: '{}'".format(clause))
 
-        return first and second
+        # sentence variables
+        sentence_vars = {v for lbl in clause.sentence.labels() for f in lbl for v in f.variables()}
+        if sentence_vars:
+            raise SafetyError("Asserted clause is unsafe, no variables may be present in the sentence: '{}'".format(clause))
 
     def assert_clause(self, clause):
         """Asserts a clause. Raises an error if the clause is unsafe."""
-        if not self.is_safe(clause):
-            raise JudgedError("Asserted clause is unsafe: '{}'".format(clause))
+        self.raise_for_safety(clause)
 
         # select database first
         db = self.facts if not clause.body else self.rules
@@ -108,7 +116,8 @@ class Knowledge:
         for db in (self.rules, self.facts):
             for bucket in db.values():
                 for clause in bucket.values():
-                    result.update(lbl[1] for lbl in clause.sentence.labels() if lbl[0]==partitioning)
+                    labels = list(lbl[1] for lbl in clause.sentence.labels() if lbl[0]==partitioning)
+                    result.update(labels)
         return result
 
 

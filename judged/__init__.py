@@ -8,7 +8,7 @@ from judged import formatting
 
 
 __all__ = [
-    'JudgedError', 'ParseError', 'TokenizeError',
+    'JudgedError', 'SafetyError', 'ParseError', 'TokenizeError',
     'Constant', 'Variable', 'Predicate', 'Literal', 'Clause'
 ]
 
@@ -20,6 +20,13 @@ class JudgedError(Exception):
     def __init__(self, message, context=None):
         self.message = message
         self.context = context
+
+
+class SafetyError(JudgedError):
+    """
+    An error indicating that a clause is not safe to add to the knowledge base.
+    """
+    pass
 
 
 class ParseError(JudgedError):
@@ -419,7 +426,8 @@ class Clause:
         s = lambda t: t.subst(env)
         body = list(map(s, self.body))
         delayed = list(map(s, self.delayed))
-        return Clause(self.head.subst(env), body, delayed, self.sentence)
+        sentence = self.sentence.subst(env)
+        return Clause(self.head.subst(env), body, delayed, sentence)
 
     def rename(self):
         """
