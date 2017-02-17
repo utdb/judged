@@ -10,7 +10,7 @@ import difflib
 
 def parse_statement(source):
     tokens = tokenizer.tokenize(io.StringIO(source))
-    return next(parser._parse(tokens))
+    return next(parser._parse(parser.Tokens(tokens)))
 
 
 @test.parser

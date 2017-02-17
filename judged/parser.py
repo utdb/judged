@@ -105,7 +105,10 @@ class Tokens:
 
 def parse(reader):
     """Helper function to act as single point of entry for simple parses."""
-    yield from _parse(tokenizer.tokenize(reader))
+    token_stream = tokenizer.tokenize(reader)
+    tokens = Tokens(token_stream)
+    yield from _parse(tokens)
+
 
 
 # identifier token filter
@@ -117,27 +120,30 @@ def _parse(tokens):
     Parser entry point. This generator will yield a tuple of (clause, action,
     context) per parsed clause.
     """
-    ts = Tokens(tokens)
+    while tokens:
+        yield parse_action(tokens)
 
-    while ts:
-        start_t = ts.peek()
 
-        if ts.consume(AT):
-            annotation = parse_annotation(ts)
-            t_action = ts.next(lambda t: t[0] == PERIOD, 'Expected period to close annotation')
-            annotation.source = LocationContext(start_t[2], t_action[2])
-            yield annotation
-        else:
-            clause = parse_clause(ts)
-            t_action = ts.next(lambda t: t[0] in (PERIOD, TILDE, QUERY), 'Expected period, tilde or question mark to indicate action.')
-            source = LocationContext(start_t[2], t_action[2])
+def parse_action(tokens):
+    start_t = tokens.peek()
 
-            if t_action[0] == PERIOD:
-                yield actions.AssertAction(clause, source=source)
-            elif t_action[0] == TILDE:
-                yield actions.RetractAction(clause, source=source)
-            elif t_action[0] == QUERY:
-                yield actions.QueryAction(clause, source=source)
+    if tokens.consume(AT):
+        annotation = parse_annotation(tokens)
+        t_action = tokens.next(lambda t: t[0] == PERIOD, 'Expected period to close annotation')
+        annotation.source = LocationContext(start_t[2], t_action[2])
+        return annotation
+    else:
+        clause = parse_clause(tokens)
+        t_action = tokens.next(lambda t: t[0] in (PERIOD, TILDE, QUERY), 'Expected period, tilde or question mark to indicate action.')
+        source = LocationContext(start_t[2], t_action[2])
+
+        if t_action[0] == PERIOD:
+            return actions.AssertAction(clause, source=source)
+        elif t_action[0] == TILDE:
+            return actions.RetractAction(clause, source=source)
+        elif t_action[0] == QUERY:
+            return actions.QueryAction(clause, source=source)
+
 
 
 def make_term(token):
