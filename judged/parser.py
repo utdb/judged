@@ -5,6 +5,9 @@ The parser structure is a recursive descent parser with look ahead N through an
 unlimited pushback buffer.
 """
 
+import functools
+import io
+
 import judged
 from judged import tokenizer
 from judged.tokens import *
@@ -107,31 +110,45 @@ class Tokens:
 IDENTIFIER = lambda t: t[0] in (NAME, STRING, NUMBER)
 
 
-def parse_main(tokens):
+def rule(parse_func):
+    """Rule decorator that allows passing in a string, file-like object or
+    sequence of tokens. The actual parse function will then be invoked with a
+    correctly constructed Tokens instance."""
+    @functools.wraps(parse_func)
+    def parse_rule(source):
+        # shortcut for correct input
+        if type(source) == Tokens:
+            return parse_func(source)
+
+        # transform strings into a readable thing
+        if isinstance(source, str):
+            source = io.StringIO(source)
+        # transform any readable thing into a token stream
+        if hasattr(source, 'read'):
+            source = tokenizer.tokenize(source)
+        # wrap anything that's not already a Tokens in a Tokens
+        if not isinstance(source, Tokens):
+            source = Tokens(source)
+
+        # start the parse
+        return parse_func(source)
+    return parse_rule
+
+
+@rule
+def parse(tokens):
     """
-    Parser entry point.
+    Parser entry point that produces a stream of actions.
     """
     while tokens:
         yield parse_action(tokens)
 
 
-def reader_parse(reader, rule=parse_main):
-    """Helper function to parse directly from a reader."""
-    token_stream = tokenizer.tokenize(reader)
-    tokens = Tokens(token_stream)
-    return rule(tokens)
-
-
-def string_parse(string, rule=parse_main):
-    import io
-    return reader_parse(io.StringIO(string), rule)
-
-
-def parse(reader):
-    return reader_parse(reader, parse_main)
-
-
+@rule
 def parse_action(tokens):
+    """
+    Parse a single action.
+    """
     start_t = tokens.peek()
 
     if tokens.consume(AT):
@@ -189,6 +206,7 @@ def make_term(token):
         return judged.Constant.number(spelling)
 
 
+@rule
 def parse_literal(ts):
     """
     Parses a single literal from the token stream.
@@ -231,6 +249,7 @@ def parse_literal(ts):
     return judged.Literal(predicate, body, polarity)
 
 
+@rule
 def parse_descriptive_label(ts):
     partitioning = ts.next(IDENTIFIER, 'Expected an identifier or string as partitioning of label in descriptive sentence.')
 
@@ -270,6 +289,7 @@ def parse_descriptive_label(ts):
         return worlds.Label(left, right)
 
 
+@rule
 def parse_sentence_leaf(ts):
     """
     Parses a label, or a parenthesis enclosed sentence.
@@ -282,6 +302,7 @@ def parse_sentence_leaf(ts):
         return parse_descriptive_label(ts)
 
 
+@rule
 def parse_sentence_not_test(ts):
     """
     Parses a negation or a leaf.
@@ -293,6 +314,7 @@ def parse_sentence_not_test(ts):
         return parse_sentence_leaf(ts)
 
 
+@rule
 def parse_sentence_and_test(ts):
     """
     Tries to parse an and operation.
@@ -306,6 +328,7 @@ def parse_sentence_and_test(ts):
         return left
 
 
+@rule
 def parse_sentence_or_test(ts):
     """
     Tries to parse an or operation.
@@ -319,6 +342,7 @@ def parse_sentence_or_test(ts):
         return left
 
 
+@rule
 def parse_sentence(ts):
     """
     Parse a descriptive sentence.
@@ -326,6 +350,7 @@ def parse_sentence(ts):
     return parse_sentence_or_test(ts)
 
 
+@rule
 def parse_clause(ts):
     """
     Parse a clause.
@@ -346,6 +371,7 @@ def parse_clause(ts):
     return judged.Clause(head, literals, [], sentence)
 
 
+@rule
 def parse_probability(ts):
     """
     Parse a probability notation of 'P(x=n)'.
@@ -357,6 +383,7 @@ def parse_probability(ts):
     return label
 
 
+@rule
 def parse_probability_var(ts):
     """
     Parse a probability notation of 'P(x)'.
@@ -369,6 +396,7 @@ def parse_probability_var(ts):
     return variable
 
 
+@rule
 def parse_annotation(ts):
     """
     Parse an annotation.
@@ -405,6 +433,7 @@ def parse_annotation(ts):
         raise ParseError('Expected explicit probability assignment, distribution assignment, use statement, or from statement.', t[2] if t is not None else None)
 
 
+@rule
 def parse_use_annotation(ts):
     """
     Parse a `use "name"` or `use "name" with key="value", key="value"`.
@@ -425,6 +454,7 @@ def parse_use_annotation(ts):
     return module_name, module_config
 
 
+@rule
 def parse_from_annotation(ts):
     """
     Parse a `from "name" use name` and variants.
