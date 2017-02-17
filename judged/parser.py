@@ -103,25 +103,32 @@ class Tokens:
         return not self.is_empty()
 
 
-def parse(reader):
-    """Helper function to act as single point of entry for simple parses."""
-    token_stream = tokenizer.tokenize(reader)
-    tokens = Tokens(token_stream)
-    yield from _parse(tokens)
-
-
-
 # identifier token filter
 IDENTIFIER = lambda t: t[0] in (NAME, STRING, NUMBER)
 
 
-def _parse(tokens):
+def parse_main(tokens):
     """
-    Parser entry point. This generator will yield a tuple of (clause, action,
-    context) per parsed clause.
+    Parser entry point.
     """
     while tokens:
         yield parse_action(tokens)
+
+
+def reader_parse(reader, rule=parse_main):
+    """Helper function to parse directly from a reader."""
+    token_stream = tokenizer.tokenize(reader)
+    tokens = Tokens(token_stream)
+    return rule(tokens)
+
+
+def string_parse(string, rule=parse_main):
+    import io
+    return reader_parse(io.StringIO(string), rule)
+
+
+def parse(reader):
+    return reader_parse(reader, parse_main)
 
 
 def parse_action(tokens):
