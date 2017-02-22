@@ -1,5 +1,6 @@
 from judged import worlds
 from judged import JudgedError
+from judged import extensions
 
 
 class Action:
@@ -114,11 +115,11 @@ class UseModuleAction(Action):
         self.config = config
 
     def perform(self, context):
-        ext = extensions.known_extensions.get(module)
+        ext = extensions.known_extensions.get(self.module)
         if ext is None:
-            raise extensions.ExtensionError("Module '{}' not found.".format(module))
+            raise extensions.ExtensionError("Module '{}' not found.".format(self.module))
 
-        context.use_extension(ext, config)
+        context.use_extension(ext, self.config)
         return ext
 
     def __str__(self):
@@ -136,7 +137,7 @@ class UsePredicateAction(Action):
         ext = context.extensions.get(self.module)
         if not ext:
             ext = UseModuleAction(self.module, {}).perform(context)
-        ext.register_predicate(context, predicate, alias)
+        ext.register_predicate(context, self.predicate, self.alias)
 
     def __str__(self):
         return "use predicate '{}' from module '{}'".format(self.predicate, self.module) + (" aliased as '{}'".format(self.alias) if self.alias else '')
