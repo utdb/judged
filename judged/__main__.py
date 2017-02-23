@@ -33,39 +33,41 @@ FORMAT_ENV_KEY = 'DATALOG_FORMAT'
 current_context = None
 args = None
 
-# Internal bookkeeping to map driver handling to actions
-action_handlers = {}
 
-def handles(action_type):
-    def registerer(f):
-        action_handlers[action_type] = f
-        return f
-    return registerer
+class ActionReporter:
+    """
+    A reporter to support verbosity and logging of all performed actions.
+    Use of this mechanism is optional, and actions perform equally well without
+    any form of reporting.
 
+    For the command line interface, this mechanism is used to inform the user of
+    the progress of their scripts.
+    """
+    def __init__(self, args):
+        self.verbose = args.verbose
+        self.verbose_questions = args.verbose_questions
+        self.indent = 0
 
-# Action action_handlers
-@handles(actions.QueryAction)
-def query(action):
-    """Executes a query and presents the answers."""
-    if args.verbose or args.verbose_questions:
-        print(formatting.comment("% ") + "{}".format(action))
-    result = action.perform(current_context)
+    def perform(self, action):
+        if self.verbose or (type(action) == actions.QueryAction and self.verbose_questions):
+            print('  ' * self.indent + formatting.comment("% ") + "{}".format(action))
 
-    # LATER: `sorted` can be removed for python3.6 with stable dictionaries
-    for k in sorted(result.notes):
-        print(formatting.comment("% {}: {}".format(k, result.notes[k])))
+    def result(self, result):
+        # LATER: `sorted` can be removed for python3.6 with stable dictionaries
+        for k in sorted(result.notes):
+            print('  ' * self.indent + formatting.comment("% {}: {}".format(k, result.notes[k])))
 
-    for a in result.answers:
-        print("{}.".format(a.clause), end='')
-        if a.probability is not None:
-            print(formatting.comment(" % p = {}".format(a.probability)), end='')
-        print()
+        for a in result.answers:
+            print('  ' * self.indent + "{}.".format(a.clause), end='')
+            if a.probability is not None:
+                print('  ' * self.indent + formatting.comment(" % p = {}".format(a.probability)), end='')
+            print()
 
+    def enter(self, action):
+        self.indent += 1
 
-def default_handler(action):
-    if args.verbose:
-        print(formatting.comment("% ") + "{}".format(action))
-    action.perform(current_context)
+    def exit(self):
+        self.indent -= 1
 
 
 def handle_reader(reader):
@@ -76,8 +78,7 @@ def handle_reader(reader):
     """
     for action in parser.parse(reader):
         try:
-            handler = action_handlers.get(type(action), default_handler)
-            handler(action)
+            action.perform(current_context, ActionReporter(args))
         except judged.JudgedError as e:
             e.context = action.source
             raise e

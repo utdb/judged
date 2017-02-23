@@ -7,7 +7,7 @@ class Action:
     def __init__(self, source=None):
         self.source = source
 
-    def perform(self, context):
+    def perform(self, context, reporter=None):
         raise NotImplementedError
 
     def substitute(self, env):
@@ -19,7 +19,10 @@ class AssertAction(Action):
         super().__init__(source)
         self.clause = clause
 
-    def perform(self, context):
+    def perform(self, context, reporter=None):
+        if reporter is not None:
+            reporter.perform(self)
+
         context.knowledge.assert_clause(self.clause)
 
     def __str__(self):
@@ -35,7 +38,10 @@ class RetractAction(Action):
         super().__init__(source)
         self.clause = clause
 
-    def perform(self, context):
+    def perform(self, context, reporter=None):
+        if reporter is not None:
+            reporter.perform(self)
+
         context.knowledge.retract_clause(clause)
 
     def __str__(self):
@@ -56,9 +62,16 @@ class QueryAction(Action):
 
         self.clause = clause
 
-    def perform(self, context):
+    def perform(self, context, reporter=None):
+        if reporter is not None:
+            reporter.perform(self)
+
         literal = self.clause.head
         result = context.ask(literal)
+
+        if reporter is not None:
+            reporter.result(result)
+
         return result
 
     def __str__(self):
@@ -75,7 +88,10 @@ class AnnotateProbabilityAction(Action):
         self.label = label
         self.probability = probability
 
-    def perform(self, context):
+    def perform(self, context, reporter=None):
+        if reporter is not None:
+            reporter.perform(self)
+
         context.add_probability(self.label.partitioning, self.label.part, self.probability)
 
     def __str__(self):
@@ -92,7 +108,10 @@ class AnnotateDistributionAction(Action):
         self.partitioning = partitioning
         self.distribution = distribution
 
-    def perform(self, context):
+    def perform(self, context, reporter=None):
+        if reporter is not None:
+            reporter.perform(self)
+
         # determine all present parts
         parts = context.knowledge.parts(self.partitioning)
 
@@ -114,7 +133,10 @@ class UseModuleAction(Action):
         self.module = module
         self.config = config
 
-    def perform(self, context):
+    def perform(self, context, reporter=None):
+        if reporter is not None:
+            reporter.perform(self)
+
         ext = extensions.known_extensions.get(self.module)
         if ext is None:
             raise extensions.ExtensionError("Module '{}' not found.".format(self.module))
@@ -133,7 +155,10 @@ class UsePredicateAction(Action):
         self.predicate = predicate
         self.alias = alias
 
-    def perform(self, context):
+    def perform(self, context, reporter=None):
+        if reporter is not None:
+            reporter.perform(self)
+
         ext = context.extensions.get(self.module)
         if not ext:
             ext = UseModuleAction(self.module, {}).perform(context)
@@ -153,7 +178,10 @@ class GeneratorAction(Action):
             raise JudgedError('Cannot perform a query with a descriptive sentence.')
         self.query_clause = query_clause
 
-    def perform(self, context):
+    def perform(self, context, reporter=None):
+        if reporter is not None:
+            reporter.perform(self)
+
         result = context.ask(self.query_clause.head)
 
         # Skip any non-exact results
@@ -169,8 +197,12 @@ class GeneratorAction(Action):
 
             # get the substitution environment for the answer
             env = self.query_clause.head.unify(answer.clause.head)
+            if reporter is not None:
+                reporter.enter(self)
             for action in [c.substitute(env) for c in self.children]:
-                action.perform(context)
+                action.perform(context, reporter)
+            if reporter is not None:
+                reporter.exit()
 
     def __str__(self):
         return "generate for {{{}}} based on {}".format(', '.join("{}".format(c) for c in self.children), self.query_clause)
