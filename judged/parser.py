@@ -140,8 +140,10 @@ def parse(tokens):
     """
     Parser entry point that produces a stream of actions.
     """
+    children = []
     while tokens:
-        yield parse_action(tokens)
+        children.append(parse_action(tokens))
+    return actions.CompoundAction(children)
 
 
 @rule

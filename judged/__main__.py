@@ -76,9 +76,17 @@ def handle_reader(reader):
     action will be furnished with context information based on the context
     information of the parsed action.
     """
-    for action in parser.parse(reader):
+    # parse the compound action from the reader
+    compound = parser.parse(reader)
+    # set up the CLI reporter
+    reporter =  ActionReporter(args)
+
+    # manually iterate through the compound. This could be done directly with a
+    # `compound.perform` invocation, but this allows all the queries in the
+    # compound to have their result reported, instead of only the final one.
+    for action in compound:
         try:
-            action.perform(current_context, ActionReporter(args))
+            action.perform(current_context, reporter)
         except judged.JudgedError as e:
             e.context = action.source
             raise e

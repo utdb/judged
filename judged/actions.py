@@ -168,6 +168,39 @@ class UsePredicateAction(Action):
         return "use predicate '{}' from module '{}'".format(self.predicate, self.module) + (" aliased as '{}'".format(self.alias) if self.alias else '')
 
 
+class CompoundAction(Action):
+    def __init__(self, children, *, source=None):
+        super().__init__(source)
+        self.children = children
+
+    def perform(self, context, reporter=None):
+        if reporter is not None:
+            reporter.perform(self)
+            reporter.enter(self)
+
+        # the last result from the compound will be the compound's result
+        last_result = None
+        for action in self.children:
+            last_result = action.perform(context, reporter)
+        if reporter is not None:
+            reporter.exit()
+        # return the last result for use (e.g. a query at the end or such)
+        return last_result
+
+    def __str__(self):
+        return "compound of {{{}}}".format(', '.join("{}".format(c) for c in self.children))
+
+    def substitute(self, env):
+        cls = type(self)
+        return cls([c.substitute(env) for c in self.children], source=self.source)
+
+    def __getitem__(self, selector):
+        return self.children[selector]
+
+    def __iter__(self):
+        return iter(self.children)
+
+
 class GeneratorAction(Action):
     def __init__(self, children, query_clause, *, source=None):
         super().__init__(source)
