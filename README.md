@@ -87,6 +87,24 @@ Or, if a uniform distribution is desired, with:
 Note that the `@uniform` annotation should be placed after all values for the
 given partition have been defined.
 
+Furthermore, it is possible to describe a set of actions that is to be performed
+multiple times, based on the answer of a query (this construct is called the generator
+syntax):
+
+    coin(c1).
+    coin(c2).
+
+    {
+        result(C, heads) :- coin(C) [c(C)=heads].
+        result(C, tails) :- coin(C) [c(C)=tails].
+        @uniform c(C).
+    | coin(C) }
+
+This declares the result and attached sentence once for each answer to `coin(C)?`. The
+generator syntax effectively reads as "perform these actions, given the answer to this
+query". The variables that are bound in the query are used to substitute variables in
+the body of the generator. In the example, `C` will be replaced with `c1` and `c2`. To
+see the generator syntax in action inspect `examples/coins.dl`.
 
 Interpreter
 -----------
