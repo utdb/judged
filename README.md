@@ -127,3 +127,11 @@ For ease of use, some useful combinations are given here.
 Furthermore, in interactive mode the interpreter offers several introspective
 commands. More information on these can be obtained through type `.help` in the
 interpreter.
+
+
+Extensions
+----------
+
+It is possible to write extensions to JudgeD in python. This is demonstrated in
+`examples/exthello.dl` and `examples/exthello.py`. To run the example, use
+`judged exact -e examples.exthello examples/exthello.dl`.
