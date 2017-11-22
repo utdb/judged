@@ -1,0 +1,36 @@
+object(1,a,15).
+object(2,a,16).
+object(3,a,32).
+object(4,b,32).
+object(5,b,31).
+object(6,c,10).
+
+sim(1,2).
+sim(3,4).
+sim(4,5).
+
+hasdup(I) :- object(O,_,_), sim(O,I).
+hasdup(I) :- object(O,_,_), sim(I,O).
+
+% Case for no duplicate
+resolved(I,A,B) :-
+    object(I,A,B), ~hasdup(I).
+
+{
+% Case for similar and duplicate
+resolved(I,A,B) :-
+    object(I,A,B), object(O,_,_) [s(I)=1].
+resolved(I,A,B) :-
+    object(I,_,_), object(O,A,B) [s(I)=1].
+
+% Case for similar but no duplicate
+resolved(I,A,B) :-
+    object(I,A,B) [s(I)=2 and c(I)=1].
+resolved(O,A,B) :-
+    object(O,A,B) [s(I)=2 and c(I)=2].
+@uniform s(I).
+@uniform c(I).
+| sim(I,O)
+}
+
+resolved(_,_,_)?
