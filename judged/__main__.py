@@ -262,7 +262,6 @@ def main():
 
     # build actual options
     options = argparse.ArgumentParser(description="{} entry point for interactive and batch use of judged.".format(NAME))
-    options.set_defaults(type=None)
 
     suboptions = options.add_subparsers(title='Subcommands for the judged judged system')
 
@@ -288,7 +287,7 @@ def main():
 
     args = options.parse_args()
 
-    if not args.type:
+    if getattr(args, 'type', None) is None:
         options.print_help()
         options.exit()
 
