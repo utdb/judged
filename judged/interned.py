@@ -8,11 +8,11 @@ already interned values.
 
 A contrived example is:
 
->>> class Foo(metaclass=InternalizeMeta):
->>>    def __init__(self, name):
->>>        self.name = name
->>> Foo("test") == Foo("test")
-True
+    >>> class Foo(metaclass=InternalizeMeta):
+    >>>    def __init__(self, name):
+    >>>        self.name = name
+    >>> Foo("test") == Foo("test")
+    True
 """
 
 import weakref
@@ -65,5 +65,3 @@ class InternalizeMeta(type):
             result = type.__call__(cls, *args, **kwargs)
             cls._lookup[key] = result
         return result
-
-

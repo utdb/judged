@@ -9,6 +9,7 @@ import judged
 from judged import TokenizeError
 from judged.tokens import *
 
+
 # punctuation to token type lookup
 punctuation = {
     '(': LPAREN,

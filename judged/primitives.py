@@ -8,6 +8,7 @@ from judged import Predicate, Literal, Constant, Clause
 # Defines the built-in equality predicate '='
 EQUALS_PREDICATE = Predicate('=', 2)
 
+
 def equals_predicate(literal, prover):
     """
     Equals predicate works by attempting unification.

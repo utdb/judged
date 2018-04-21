@@ -9,6 +9,7 @@ class Token:
     def __repr__(self):
         return self.name
 
+
 LPAREN = Token('LPAREN')
 RPAREN = Token('RPAREN')
 COMMA = Token('COMMA')

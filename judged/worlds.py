@@ -87,6 +87,7 @@ class Disjunction(Nary):
                 return True
         return False
 
+
 class Conjunction(Nary):
     def __str__(self):
         return self.nary2string("and")
@@ -109,7 +110,7 @@ class Negation(Unary):
         return "not {!s}".format(self.sub)
 
     def create_bdd(self):
-        return ~ (self.sub.create_bdd())
+        return ~(self.sub.create_bdd())
 
     def evaluate(self, checker):
         return not self.sub.evaluate(checker)
@@ -251,7 +252,7 @@ def exclusion_matrix(partitions, kb):
                 excl_subsub = label_bdd_var(key, id)
                 for idnot in group:
                     if id != idnot:
-                        excl_subsub = excl_subsub & ~ label_bdd_var(key, idnot)
+                        excl_subsub = excl_subsub & ~label_bdd_var(key, idnot)
                 if excl_sub == None:
                     excl_sub = excl_subsub
                 else:
@@ -261,6 +262,7 @@ def exclusion_matrix(partitions, kb):
             else:
                 excl = excl & excl_sub
     return excl
+
 
 def equivalent(l, r, kb):
     """
@@ -279,6 +281,7 @@ def equivalent(l, r, kb):
 
     return lbdd == rbdd
 
+
 def falsehood(s, kb):
     """
     Determines if a world is a contradiction, i.e., if it can only exist
@@ -292,17 +295,22 @@ def falsehood(s, kb):
 
     return sbdd.is_zero()
 
+
 def labels(s):
     return s.labels()
+
 
 def evaluate(s, checker):
     return s.evaluate(checker)
 
+
 def is_grounded(s):
     return s.is_grounded()
 
+
 def subst(s, env):
     return s.subst(env)
+
 
 def conjunct(*terms):
     used = {t for t in terms if t != Top()}
@@ -312,6 +320,7 @@ def conjunct(*terms):
         return used.pop()
     else:
         return Conjunction(*used)
+
 
 def disjunct(*terms):
     used = {t for t in terms if t != Bottom()}
