@@ -82,7 +82,7 @@ defined. This can be done manually per label:
 
 Or, if a uniform distribution is desired, with:
 
-    @uniform(x).
+    @uniform x.
 
 Note that the `@uniform` annotation should be placed after all values for the
 given partition have been defined.
