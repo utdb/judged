@@ -42,7 +42,7 @@ class RetractAction(Action):
         if reporter is not None:
             reporter.perform(self)
 
-        context.knowledge.retract_clause(clause)
+        context.knowledge.retract_clause(self.clause)
 
     def __str__(self):
         return "retract {}".format(self.clause)

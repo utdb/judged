@@ -227,6 +227,7 @@ class Predicate(metaclass=interned.InternalizeMeta):
     def __repr__(self):
         return self.id
 
+
 def add_size(string):
     """Helper function for tag creation."""
     return str(len(string)) + ':' + string

@@ -17,6 +17,7 @@ string_escapes = str.maketrans({
 
 default_format_spec = 'plain'
 
+
 def color(style):
     def apply(s):
         return '\x1b['+style+'m' + s + '\x1b[0m'
@@ -132,7 +133,6 @@ def clause(cl, format_spec=None):
         result += ' ' + ', '.join(map(lambda x: format(x, format_spec), cl.body))
     if cl.delayed:
         result += ' | ' + ', '.join(map(lambda x: format(x, format_spec), cl.delayed))
-
     if cl.sentence and cl.sentence != worlds.Top():
         result += ' [' + format(cl.sentence, format_spec) + ']'
     return result
@@ -157,7 +157,6 @@ def sentence(s, format_spec=None):
     """
     Formats a sentence for output.
     """
-
     format_spec = format_spec or default_format_spec
 
     effect = lambda x: x

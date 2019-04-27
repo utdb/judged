@@ -24,7 +24,7 @@ Development Start
 
   1. `git clone` this repository
   2. Set up a virtualenv with python3.4+
-  3. Get to work on the source, using `./judged.py` as entry point
+  3. Get to work on the source, using `./judged.py` (or `python -m judged`) as entry point
   4. Run tests with `python -m tests`
   5. Package source release with `python setup.py sdist`
 
@@ -40,7 +40,7 @@ based implementation of Datalog with negation in Python.
 
 The `exact` and `montecarlo` variants are two proof-of-concept implementations
 of probabilistic datalog. The `exact` version determines the exact sentence
-describing the validity of the answers, it does net calculate probabilities, nor
+describing the validity of the answers, it does not calculate probabilities, nor
 does it handle negation. The `montecarlo` version calculate answer probabilities
 through Monte Carlo simulation, it approximates the probabilities but does not
 provide an exact sentence.

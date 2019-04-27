@@ -9,6 +9,7 @@ import judged
 from judged import TokenizeError
 from judged.tokens import *
 
+
 # punctuation to token type lookup
 punctuation = {
     '(': LPAREN,
@@ -312,7 +313,7 @@ def tokenize(source):
     elif state == S_STRING:
         raise TokenizeError('End of file in string literal.', cs.line)
     elif state == S_STRING_ESC:
-        raise TokenizeError('End of file in string escape.', cs.line)
+        raise TokenizeError('End of file in escape sequence in string literal.', cs.line)
     elif state in (S_NUMBER, S_NUMBER_FRACTIONAL):
         try:
             yield (NUMBER, number(accum), line)

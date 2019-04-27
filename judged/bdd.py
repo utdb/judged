@@ -5,6 +5,7 @@ Binary Decision Diagram module.
 from judged.interned import InternalizeMeta
 from operator import attrgetter
 
+
 class Node(metaclass=InternalizeMeta):
     def __init__(self, root, high, low):
         self._root = root
@@ -18,6 +19,7 @@ class Node(metaclass=InternalizeMeta):
     high = property(attrgetter('_high'))
     low = property(attrgetter('_low'))
 
+
 ZERO = Node(-1, None, None)
 ONE = Node(-2, None, None)
 
@@ -27,6 +29,7 @@ def _node(root, high, low):
         return high
     else:
         return Node(root, high, low)
+
 
 def _neg(node):
     if node is ZERO:
@@ -157,6 +160,7 @@ def constant(val):
 
 variables = {}
 variables_rev = {}
+
 
 def variable(name):
     try:

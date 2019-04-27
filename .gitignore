@@ -3,3 +3,4 @@ env/
 dist/
 judged.egg-info/
 *.swp
+*.local.*

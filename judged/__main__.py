@@ -136,47 +136,73 @@ def interactive():
         return
 
 
+# The list of known interactive mode commands
 interactive_commands = {}
 
+
+# Interactive command record
 InteractiveCommand = collections.namedtuple('InteractiveCommand', ['command', 'function', 'description'])
 
+
 def ic(command, description=''):
+    """Decorator to register an interactive command."""
+    # The registerer function will be used for the actual decoration
     def registerer(f):
+        # Register the given function as an interactive command
         interactive_commands[command] = InteractiveCommand(command, f, description)
         return f
     return registerer
 
+
 def interactive_command(line):
+    """Handler for processing an interactive command.
+
+    This function is responsible for looking up the interactive command, and
+    running it with parsed arguments.
+    """
+    # Fast fail if line is only a period
     if line == '.':
         ic_help([])
         return
+
+    # Split line into command and arguments
     command, *arguments = line[1:].split()
+    # Attempt to retrieve the interactive command
     cmd = interactive_commands.get(command)
     if cmd:
+        # Run the command
         cmd.function(arguments)
     else:
+        # Raise because the command is not known
         raise judged.JudgedError("Unknown interactive command '{}', type .help to get available commands".format(command))
 
 
 @ic('kb', 'Outputs the internal knowledge base')
 def ic_kb(arguments):
+    """Interactive command to dump out the complete knowledge base."""
     print(formatting.comment('% Outputting internal KB:'))
+
+    # Retrieve all predicates
     all_preds = set(current_context.knowledge.facts.keys()) | set(current_context.knowledge.rules.keys()) | set(current_context.knowledge.prim.keys())
+
+    # Produce an entry for each predicate
     for pred in all_preds:
         print(formatting.comment('%') + " {} =>".format(pred))
+
+        # Output facts, then rules...
         for db in (current_context.knowledge.facts, current_context.knowledge.rules):
-            asserted = db.get(pred)
-            if asserted:
-                for id, clause in asserted.items():
-                    print(formatting.comment('%')+"   {}".format(clause))
-        primitive = current_context.knowledge.prim.get(pred)
-        if primitive:
-            for generator in primitive:
-                print(formatting.comment('%')+"   <primitive> (bound to {})".format(generator.description))
+            # Output a line for each item in the database (if there are any)
+            for id, clause in db.get(pred, {}).items():
+                print(formatting.comment('%')+"   {}".format(clause))
+
+        # ... and then primitives
+        for generator in current_context.knowledge.prim.get(pred, []):
+            print(formatting.comment('%')+"   <primitive> (bound to {})".format(generator.description))
 
 
 @ic('help', 'Displays all available commands and their description')
 def ic_help(arguments):
+    """Interactive command to show descriptions of each interactive command."""
     print(formatting.comment('% Available commands:'))
     for cmd in interactive_commands.values():
         print(formatting.comment("% .{}: {}".format(cmd.command, cmd.description)))
@@ -184,23 +210,34 @@ def ic_help(arguments):
 
 @ic('ext', 'Displays a list of all available extensions, or display list of all predicates in an extension')
 def ic_extensions(arguments):
+    """Interactive command for introspection of extensions."""
     if not arguments:
-        print(formatting.comment('% Available extensions:'))
-        for ext in extensions.list_extensions():
-            print(formatting.comment("% {}".format(ext.name)))
+        # Argument-less version displays all extensions:
+        exts = extensions.list_extensions()
+        if exts:
+            print(formatting.comment('% Available extensions:'))
+            for ext in extensions.list_extensions():
+                print(formatting.comment("% {}".format(ext.name)))
+        else:
+            print(formatting.comment('% No extensions loaded'))
     else:
+        # Argument-full version lists all predicates of an extension
         for ext in extensions.list_extensions():
             if ext.name == arguments[0]:
                 break
         else:
             raise judged.JudgedError("Unknown extensions '{}'".format(arguments[0]))
-        print(formatting.comment("% Available predicates in {}:".format(arguments[0])))
-        for pred in ext.predicates.values():
-            print(formatting.comment("%")+" {}".format(pred.predicate))
 
+        if ext.predicates:
+            print(formatting.comment("% Available predicates in {}:".format(arguments[0])))
+            for pred in ext.predicates.values():
+                print(formatting.comment("%")+" {}".format(pred.predicate))
+        else:
+            print(formatting.comment("% No predicates availabe in {}".format(arguments[0])))
 
 
 class ReportingDebugger:
+    """A debugger that can be attached to report every step of the query."""
     def __init__(self):
         self.depth = 0
 
@@ -262,10 +299,11 @@ def main():
 
     # build actual options
     options = argparse.ArgumentParser(description="{} entry point for interactive and batch use of judged.".format(NAME))
-    options.set_defaults(type=None)
 
     suboptions = options.add_subparsers(title='Subcommands for the judged judged system')
 
+
+    # Deterministic mode options
     deterministic_options = suboptions.add_parser('deterministic', aliases=['det'], parents=[shared_options],
                          help='Use the deterministic judged prover')
     deterministic_options.set_defaults(type='deterministic')
@@ -274,10 +312,14 @@ def main():
     # deterministic_options.add_argument('-s', '--select', nargs='*',
     #                      help='Restricts to a specific possible world by selecting partitions from the knowledge base.')
 
+
+    # Exact mode options
     exact_options = suboptions.add_parser('exact', aliases=['ex'], parents=[shared_options],
                          help='Use the exact descriptive sentence judged prover')
     exact_options.set_defaults(type='exact')
 
+
+    # Monte-carlo mode options
     montecarlo_options = suboptions.add_parser('montecarlo', aliases=['mc'], parents=[shared_options],
                          help='Use the Monte Carlo estimated probabilities prover')
     montecarlo_options.set_defaults(type='montecarlo')
@@ -286,12 +328,15 @@ def main():
     montecarlo_options.add_argument('-a', '--approximate', type=float, default=0,
                          help='The maximum allowable error for an approximation simulation. Defaults to %(default)s.')
 
+    # Parse actual arguments
     args = options.parse_args()
 
-    if not args.type:
+    # Fail fast if no context type was selected
+    if getattr(args, 'type', None) is None:
         options.print_help()
         options.exit()
 
+    # Set default formatting specification
     judged.formatting.default_format_spec = args.format
 
     # determine debugger
@@ -327,6 +372,7 @@ def main():
     elif args.type == 'montecarlo':
         current_context = context.MontecarloContext(number=args.number, approximate=args.approximate, **context_options)
 
+    # run files and drop to interactive mode if requested
     if args.file:
         batch(args.file)
         if args.imports:

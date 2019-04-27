@@ -41,6 +41,10 @@ def init(context, thing="(default)", **rest):
     the_thing = thing
 
 
+
+# It is possible to set up one or more functions to be called before and after
+# the actual query runs. This allows the use of query-lifetime caches.
+
 @ext.before_ask
 def prepare_something(context):
     print("exthello sees the start of a query!")

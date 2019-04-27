@@ -12,6 +12,7 @@ from judged import JudgedError
 
 Answer = collections.namedtuple('Answer', ['clause', 'probability'])
 
+
 class Result:
     def __init__(self, answers, **notes):
         self.answers = answers
