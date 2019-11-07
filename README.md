@@ -120,7 +120,9 @@ For ease of use, some useful combinations are given here.
   - `judged deterministic -f color -v -i examples/power.dl`: `-f color`
     Explicitly declares colored output formatting, `-v` runs in verbose mode to show
     each statement as it is processed, and `-i` switches to interactive mode after
-    the given files are processed.
+    the given files are processed. Use `-f plain` to switch the colored output off, 
+    which is especially useful for use in a Windows console which does not support
+    used ANSI standard with proper drivers.
   - `judged deterministic -d examples/ancestor.dl`: Runs the ancestor.dl
     example file with a debugging trace of the query answering process.
 
